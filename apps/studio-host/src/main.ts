@@ -1,4 +1,9 @@
+import { initHopTheme } from './hop-theme';
+import { initRecentDocs } from './ui/recent-docs';
 import { createBridge, isTauriRuntime } from '@/core/bridge-factory';
+
+initHopTheme();
+
 import {
   applyDesktopChromePlatformState,
   installNonEditorContextMenuGuards,
@@ -37,6 +42,8 @@ import type { DesktopBridgeApi } from '@/core/tauri-bridge';
 const wasm = createBridge();
 const eventBus = new EventBus();
 let desktopPlatform = detectDesktopPlatform();
+
+initRecentDocs({ bridge: wasm, eventBus });
 
 type DirtyAwareBridge = {
   markDocumentDirty?(): void;

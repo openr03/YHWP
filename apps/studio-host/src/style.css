@@ -24,3 +24,5 @@
 @import '@/styles/custom-select.css';
 @import '@/styles/update-notice.css';
 @import '@/styles/responsive.css';
+@import './styles/hop-theme.css';
+@import './styles/hop-recent-docs.css';

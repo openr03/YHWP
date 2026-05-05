@@ -1,10 +1,28 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="auto">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="/favicon.ico" />
   <title>HOP</title>
+  <script>
+    /* FOUC 방지: CSS 로드 전에 data-theme 과 본문 클래스를 미리 적용 */
+    (function () {
+      try {
+        var t = localStorage.getItem('hop:theme');
+        if (t !== 'light' && t !== 'dark' && t !== 'auto') t = 'auto';
+        document.documentElement.dataset.theme = t;
+        var darkActive =
+          t === 'dark' ||
+          (t === 'auto' &&
+            window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (darkActive) {
+          document.documentElement.classList.add('hop-dark-active-pre');
+        }
+      } catch (_) {}
+    })();
+  </script>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>

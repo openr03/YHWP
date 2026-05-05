@@ -8,6 +8,7 @@ mod menu;
 mod pdf_export;
 mod pdf_font_fallbacks;
 mod pending_open;
+mod recent_docs;
 mod state;
 #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
 mod updates;
@@ -27,6 +28,9 @@ use commands::{
     prepare_staged_hwp_save, print_webview, query_document, read_local_font, render_page_svg,
     reveal_in_folder, take_pending_open_paths,
 };
+use recent_docs::{
+    add_recent_doc, clear_recent_docs, get_recent_docs, remove_recent_doc, RecentDocsState,
+};
 use state::AppState;
 use updates::{get_update_state, restart_to_apply_update, start_update_install};
 
@@ -37,6 +41,7 @@ pub fn run() {
     let app = tauri::Builder::default()
         .enable_macos_default_menu(false)
         .manage(AppState::default())
+        .manage(RecentDocsState::default())
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
@@ -100,6 +105,10 @@ pub fn run() {
             get_update_state,
             start_update_install,
             restart_to_apply_update,
+            get_recent_docs,
+            add_recent_doc,
+            remove_recent_doc,
+            clear_recent_docs,
         ])
         .build(tauri::generate_context!())
         .expect("failed to build HOP desktop app");

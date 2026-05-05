@@ -1,0 +1,247 @@
+/* ───────────────────────────────────────────────
+   HOP THEME — 라이트/다크 토큰 오버라이드
+   업스트림 rhwp-studio base.css 위에 얹는다.
+   data-theme="auto" 는 시스템 prefers-color-scheme 을 따른다.
+   data-theme="dark" / "light" 는 사용자 선택 (localStorage 저장).
+   ─────────────────────────────────────────────── */
+
+/* 다크 테마 공통 토큰 */
+:root[data-theme='dark'] {
+  --color-surface: #14191c;
+  --color-surface-raised: #1a2024;
+  --color-bg: #0e1316;
+  --color-bg-light: #161c1f;
+
+  --color-border: #2a3036;
+  --color-border-light: #252b30;
+  --color-border-lighter: #202529;
+  --color-border-dark: #3a4046;
+  --color-border-input: #333a40;
+
+  --color-text: #e6e8eb;
+  --color-text-secondary: #c5c8cc;
+  --color-text-muted: #9ba0a6;
+  --color-text-hint: #7e848a;
+  --color-text-disabled: #5a6066;
+  --color-text-placeholder: #6a7076;
+
+  --color-hover-bg: #1f262b;
+  --color-active-bg: #2a3239;
+  --color-selected-bg: rgba(97, 130, 214, 0.22);
+  --color-focus-border: #7ba8e3;
+
+  --color-primary: #7ba8e3;
+  --color-primary-dark: #5b8bd1;
+  --color-primary-light: #98bce8;
+  --color-primary-hover: #6692d4;
+  --color-primary-subtle: #6c8fc7;
+  --color-accent-bg: rgba(97, 130, 214, 0.18);
+  --color-accent-bg-light: rgba(97, 130, 214, 0.1);
+
+  --shadow-dropdown: 2px 2px 14px rgba(0, 0, 0, 0.6);
+  --shadow-dialog: 4px 4px 22px rgba(0, 0, 0, 0.7);
+  --shadow-light: 2px 2px 8px rgba(0, 0, 0, 0.4);
+  --overlay-bg: rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
+}
+
+/* 시스템 다크 모드를 따르는 auto 테마 */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='auto'] {
+    --color-surface: #14191c;
+    --color-surface-raised: #1a2024;
+    --color-bg: #0e1316;
+    --color-bg-light: #161c1f;
+
+    --color-border: #2a3036;
+    --color-border-light: #252b30;
+    --color-border-lighter: #202529;
+    --color-border-dark: #3a4046;
+    --color-border-input: #333a40;
+
+    --color-text: #e6e8eb;
+    --color-text-secondary: #c5c8cc;
+    --color-text-muted: #9ba0a6;
+    --color-text-hint: #7e848a;
+    --color-text-disabled: #5a6066;
+    --color-text-placeholder: #6a7076;
+
+    --color-hover-bg: #1f262b;
+    --color-active-bg: #2a3239;
+    --color-selected-bg: rgba(97, 130, 214, 0.22);
+    --color-focus-border: #7ba8e3;
+
+    --color-primary: #7ba8e3;
+    --color-primary-dark: #5b8bd1;
+    --color-primary-light: #98bce8;
+    --color-primary-hover: #6692d4;
+    --color-primary-subtle: #6c8fc7;
+    --color-accent-bg: rgba(97, 130, 214, 0.18);
+    --color-accent-bg-light: rgba(97, 130, 214, 0.1);
+
+    --shadow-dropdown: 2px 2px 14px rgba(0, 0, 0, 0.6);
+    --shadow-dialog: 4px 4px 22px rgba(0, 0, 0, 0.7);
+    --shadow-light: 2px 2px 8px rgba(0, 0, 0, 0.4);
+    --overlay-bg: rgba(0, 0, 0, 0.55);
+
+    color-scheme: dark;
+  }
+}
+
+/* ───────────────────────────────────────────────
+   다크 모드 보정 — 업스트림이 토큰을 쓰지 않고
+   하드코딩한 흔한 케이스를 덮어쓴다.
+   ─────────────────────────────────────────────── */
+
+:root[data-theme='dark'],
+:root[data-theme='auto'] {
+  --hop-paper-bg: #ffffff; /* 문서(편집중) 종이는 그대로 화이트 유지 */
+}
+
+/* dark 한정 보정 */
+.hop-dark-active #scroll-container {
+  background: var(--color-bg);
+}
+
+.hop-dark-active #editor-area {
+  background: var(--color-bg);
+}
+
+.hop-dark-active #ruler-corner,
+.hop-dark-active #h-ruler,
+.hop-dark-active #v-ruler {
+  background: var(--color-surface);
+  filter: invert(0.92) hue-rotate(180deg);
+}
+
+.hop-dark-active #icon-toolbar,
+.hop-dark-active #style-bar,
+.hop-dark-active #status-bar,
+.hop-dark-active #menu-bar {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.hop-dark-active .menu-dropdown,
+.hop-dark-active .md-sub-panel,
+.hop-dark-active .sb-dropdown-menu,
+.hop-dark-active .tb-split-menu {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-dropdown);
+  color: var(--color-text);
+}
+
+.hop-dark-active .md-item:hover,
+.hop-dark-active .tb-split-item:hover,
+.hop-dark-active .sb-dropdown-item:hover {
+  background: var(--color-hover-bg);
+}
+
+.hop-dark-active .tb-btn:hover,
+.hop-dark-active .sb-btn:hover {
+  background: var(--color-hover-bg);
+}
+
+.hop-dark-active .tb-btn.active,
+.hop-dark-active .sb-btn.active {
+  background: var(--color-active-bg);
+}
+
+.hop-dark-active select,
+.hop-dark-active input[type='text'],
+.hop-dark-active input[type='number'],
+.hop-dark-active textarea {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  border-color: var(--color-border-input);
+}
+
+.hop-dark-active input::placeholder,
+.hop-dark-active textarea::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+/* 다이얼로그 / 모달 */
+.hop-dark-active .dialog,
+.hop-dark-active [class*='-dialog'],
+.hop-dark-active .modal-overlay {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+.hop-dark-active [class*='-dialog'] header,
+.hop-dark-active [class*='-dialog'] .dialog-header {
+  background: var(--color-bg-light);
+  border-bottom-color: var(--color-border);
+}
+
+/* 스크롤바 (Webkit) */
+.hop-dark-active *::-webkit-scrollbar {
+  background: transparent;
+}
+.hop-dark-active *::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 6px;
+}
+.hop-dark-active *::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-dark);
+}
+
+/* ───────────────────────────────────────────────
+   상태바 우측 테마 토글 버튼
+   ─────────────────────────────────────────────── */
+.hop-theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 22px;
+  margin: 0 2px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 3px);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.hop-theme-toggle:hover {
+  background: var(--color-hover-bg);
+  border-color: var(--color-border-light);
+  color: var(--color-text);
+}
+.hop-theme-toggle:focus-visible {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 1px;
+}
+.hop-theme-toggle svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hop-theme-toggle .icon-moon,
+.hop-theme-toggle .icon-auto {
+  display: none;
+}
+:root[data-theme='dark'] .hop-theme-toggle .icon-sun {
+  display: none;
+}
+:root[data-theme='dark'] .hop-theme-toggle .icon-moon {
+  display: inline-block;
+}
+:root[data-theme='auto'] .hop-theme-toggle .icon-sun,
+:root[data-theme='auto'] .hop-theme-toggle .icon-moon {
+  display: none;
+}
+:root[data-theme='auto'] .hop-theme-toggle .icon-auto {
+  display: inline-block;
+}
