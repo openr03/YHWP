@@ -15,6 +15,7 @@ const overrideIds = [
   'command/commands/format',
   'command/commands/table',
   'command/commands/file',
+  'command/commands/insert',
   'engine/cell-selection-renderer',
   'engine/input-handler',
   'engine/input-handler-keyboard',

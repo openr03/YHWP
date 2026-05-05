@@ -841,6 +841,53 @@ export function onDblClick(this: any, e: MouseEvent): void {
       return;
     }
   }
+
+  // ─────────────────────────────────────────────
+  // YHWP: 본문 텍스트 위 더블클릭 → 단어 선택
+  // 기존 click 핸들러가 cursor 를 클릭 위치로 이동시켜 둔 상태이므로,
+  // 그 위치 기준으로 좌우로 단어 경계를 찾아 anchor + moveTo 로 범위 선택.
+  // ─────────────────────────────────────────────
+  try {
+    const pos = this.cursor.getPosition?.();
+    if (pos && typeof pos.sectionIndex === 'number'
+            && typeof pos.paragraphIndex === 'number'
+            && typeof pos.charOffset === 'number') {
+      const sec = pos.sectionIndex;
+      const para = pos.paragraphIndex;
+      const click = pos.charOffset;
+      const len = this.wasm.getParagraphLength?.(sec, para) ?? 0;
+      if (len > 0) {
+        const text: string = this.wasm.getTextRange(sec, para, 0, len) || '';
+        const isWordChar = (ch: string): boolean => {
+          if (!ch) return false;
+          // 한글/한자/알파벳/숫자/언더스코어 = 단어 문자
+          return /[\p{L}\p{N}_]/u.test(ch);
+        };
+        let start = Math.max(0, Math.min(click, text.length));
+        while (start > 0 && isWordChar(text[start - 1])) start--;
+        let end = Math.max(0, Math.min(click, text.length));
+        while (end < text.length && isWordChar(text[end])) end++;
+
+        if (end > start) {
+          e.preventDefault();
+          this.cursor.moveTo({
+            sectionIndex: sec,
+            paragraphIndex: para,
+            charOffset: start,
+          });
+          this.cursor.setAnchor();
+          this.cursor.moveTo({
+            sectionIndex: sec,
+            paragraphIndex: para,
+            charOffset: end,
+          });
+          if (typeof this.updateCaret === 'function') this.updateCaret();
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[YHWP dblclick word-select] 실패:', err);
+  }
 }
 
 export function onContextMenu(this: any, e: MouseEvent): void {
