@@ -340,6 +340,16 @@ async function hydrateRelease() {
         }
     });
 
+    // SHA-256 해시는 GitHub API의 asset.digest 필드에서 직접 추출
+    // (SHA256SUMS.txt 직접 fetch 는 Azure Blob redirect 의 CORS 제약으로 실패)
+    document.querySelectorAll("[data-asset-hash]").forEach((el) => {
+        const name = el.dataset.assetHash;
+        const a = assetMap.get(name);
+        const digest = a?.digest || "";
+        const hash = digest.startsWith("sha256:") ? digest.slice(7) : "";
+        el.textContent = hash || "해시 정보를 찾을 수 없음";
+    });
+
     // Sum total downloads across product assets (exclude .sig and meta)
     for (const a of release.assets) {
         if (a.name.endsWith(".sig") || a.name === "SHA256SUMS.txt" || a.name === "latest.json")
@@ -386,40 +396,9 @@ async function hydrateStars() {
 }
 
 /* ──────────────────────────────────────────────
-   SHA-256 HASHES (parse SHA256SUMS.txt)
-   ────────────────────────────────────────────── */
-async function hydrateChecksums() {
-    const elements = document.querySelectorAll("[data-asset-hash]");
-    if (!elements.length) return;
-    const url = `https://github.com/${REPO}/releases/latest/download/SHA256SUMS.txt`;
-    try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("no sums");
-        const text = await res.text();
-        // Lines look like: "<hash>  ./<filename>"
-        const map = new Map();
-        for (const line of text.split("\n")) {
-            const m = line.match(/^([0-9a-f]{64})\s+\.?\/?(\S+)$/i);
-            if (m) map.set(m[2], m[1]);
-        }
-        elements.forEach((el) => {
-            const name = el.dataset.assetHash;
-            const hash = map.get(name);
-            el.textContent = hash || "해시를 찾을 수 없음";
-        });
-    } catch {
-        elements.forEach((el) => {
-            el.textContent =
-                "해시를 자동으로 불러오지 못했습니다. SHA256SUMS.txt를 직접 받아 비교해 주세요.";
-        });
-    }
-}
-
-/* ──────────────────────────────────────────────
    FOOTER YEAR + RUN
    ────────────────────────────────────────────── */
 document.getElementById("year").textContent = new Date().getFullYear();
 
 hydrateRelease();
 hydrateStars();
-hydrateChecksums();
