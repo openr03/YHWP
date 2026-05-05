@@ -367,12 +367,82 @@
 }
 
 /* ───────────────────────────────────────────────
-   "찾기" 버튼의 split-arrow (▾) 숨김 — UX 단순화
-   메인 찾기 버튼 자체와 그 드롭다운 메뉴 (호버 시) 는 유지하되
-   별도의 작은 ▾ 우측 버튼은 제거
+   도구상자에서 contextual / 사용자에게 노출되면 안 되는 요소들 강제 숨김
    ─────────────────────────────────────────────── */
+/* "찾기" 버튼의 split-arrow (▾) — UX 단순화 */
 #icon-toolbar .tb-split .tb-split-arrow {
   display: none !important;
+}
+
+/* 머리말/꼬리말 편집 모드 전용 도구 그룹 — 컨텍스트 토글이 깨졌을 때
+   사용자에게 영구 노출되는 사고 방지 */
+#icon-toolbar .tb-headerfooter-group {
+  display: none !important;
+}
+
+/* 도형/그림 회전 도구 그룹 — 객체 선택 시에만 노출되어야 함 */
+#icon-toolbar .tb-rotate-group {
+  display: none !important;
+}
+
+/* 숨겨진 파일 선택 input — UI 노출 0 보장 */
+#icon-toolbar #file-input,
+#file-input {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
+/* ───────────────────────────────────────────────
+   메뉴바 좌측 YHWP 워드마크 (가벼운 브랜드 표식)
+   hop-theme.ts 가 #menu-bar 시작에 .hop-menubar-brand 를 주입한다
+   ─────────────────────────────────────────────── */
+.hop-menubar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 0 10px;
+  margin-right: 4px;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--color-primary-dark, #335095);
+  border-right: 1px solid var(--color-border-light, #d0d0d0);
+  height: 100%;
+  user-select: none;
+}
+.hop-menubar-brand-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--color-primary, #6182d6);
+  border-radius: 50%;
+}
+.hop-dark-active .hop-menubar-brand {
+  color: var(--color-primary-light, #98bce8);
+  border-right-color: var(--color-border, #2a3036);
+}
+
+/* ───────────────────────────────────────────────
+   편집 영역 마우스 커서 — 종이 위에 올리면 텍스트 입력 커서 (I-beam)
+   업스트림이 명시적으로 안 잡고 있을 때를 대비
+   ─────────────────────────────────────────────── */
+#scroll-content,
+#scroll-content svg,
+#scroll-content .hop-page,
+#scroll-content [class*='page'],
+#editor-area #scroll-container {
+  cursor: text;
+}
+/* 회색 영역(스크롤 컨테이너의 페이지 바깥) 은 기본 커서 */
+#scroll-container {
+  cursor: default;
+}
+#scroll-container > * {
+  cursor: text;
 }
 
 /* ───────────────────────────────────────────────

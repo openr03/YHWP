@@ -134,13 +134,23 @@ function createToggleButton(): HTMLButtonElement {
   return btn;
 }
 
+function injectMenubarBrand(menuBar: HTMLElement): void {
+  if (menuBar.querySelector('.hop-menubar-brand')) return;
+  const brand = document.createElement('div');
+  brand.className = 'hop-menubar-brand';
+  brand.innerHTML = `<span class="hop-menubar-brand-dot" aria-hidden="true"></span>YHWP`;
+  brand.title = 'YHWP — 영삼넷 운영';
+  menuBar.insertBefore(brand, menuBar.firstChild);
+}
+
 /**
- * 메뉴바 우측에 토글 주입. 메뉴바가 못 찾으면 status bar 우측 fallback.
+ * 메뉴바 우측에 토글 + 좌측에 워드마크 주입.
  */
 function injectButton(): HTMLButtonElement | null {
   // 1순위: 메뉴바 (#menu-bar) — 시각적으로 가장 잘 보이는 위치
   const menuBar = document.getElementById('menu-bar');
   if (menuBar && !menuBar.querySelector('.hop-theme-toggle')) {
+    injectMenubarBrand(menuBar);
     const wrap = document.createElement('div');
     wrap.className = 'hop-menubar-actions';
     const btn = createToggleButton();
