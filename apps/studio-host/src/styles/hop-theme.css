@@ -396,35 +396,7 @@
   left: -9999px !important;
 }
 
-/* ───────────────────────────────────────────────
-   메뉴바 좌측 YHWP 워드마크 (가벼운 브랜드 표식)
-   hop-theme.ts 가 #menu-bar 시작에 .hop-menubar-brand 를 주입한다
-   ─────────────────────────────────────────────── */
-.hop-menubar-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 12px 0 10px;
-  margin-right: 4px;
-  font-weight: 800;
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  color: var(--color-primary-dark, #335095);
-  border-right: 1px solid var(--color-border-light, #d0d0d0);
-  height: 100%;
-  user-select: none;
-}
-.hop-menubar-brand-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: var(--color-primary, #6182d6);
-  border-radius: 50%;
-}
-.hop-dark-active .hop-menubar-brand {
-  color: var(--color-primary-light, #98bce8);
-  border-right-color: var(--color-border, #2a3036);
-}
+/* (메뉴바 좌측 YHWP 워드마크는 영삼님 요청으로 제거됨 — 코드 미주입) */
 
 /* ───────────────────────────────────────────────
    편집 영역 마우스 커서 — 종이 위에 올리면 텍스트 입력 커서 (I-beam)
@@ -446,23 +418,29 @@
 }
 
 /* ───────────────────────────────────────────────
-   에디터 영역 — 좁은 창에서 종이가 우측으로 쏠리는 증상 완화
-   scroll-content 가 항상 좌측 정렬 + 페이지는 가운데 정렬되도록
+   에디터 영역 — 좁은 창에서 종이(페이지) 가 우측으로 쏠리는 증상 강제 fix
+   업스트림 layout 코드와 우선순위 경쟁이 있어 !important 사용
+   여러 자식 패턴 모두 커버.
    ─────────────────────────────────────────────── */
 #scroll-container {
-  display: block;
-  text-align: center; /* 페이지를 가운데 정렬 (페이지가 인라인블록이라면) */
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  overflow: auto !important;
 }
-#scroll-content {
-  display: inline-block;
-  text-align: initial;
-  margin: 0 auto;
-  min-width: 0;
+
+/* 페이지/컨텐츠 wrapper — 콘텐츠 너비만큼 차지하면서 좌우 자동 마진 */
+#scroll-content,
+#scroll-container > * {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  flex: 0 0 auto !important;
 }
-/* 매우 좁은 창에서도 컨테이너가 음수 width 가 안되도록 */
-@media (max-width: 800px) {
-  #scroll-content {
-    margin: 0;
-  }
+
+/* 종이 자체(보통 흰색 페이지) 가 absolute 로 배치되는 경우 대비 */
+#scroll-content [class*='page'],
+#scroll-content > svg {
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
