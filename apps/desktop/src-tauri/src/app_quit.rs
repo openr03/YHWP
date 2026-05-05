@@ -1,3 +1,9 @@
+// 앱 종료 흐름은 `RunEvent::ExitRequested` 가 발생하는 macOS 에서만
+// 실제로 호출된다 (lib.rs 의 `#[cfg(target_os = "macos")]` 블록 참고).
+// 그래서 macOS 가 아닌 빌드에서는 이 모듈의 항목들이 dead code 로 잡히지만,
+// 테스트와 macOS 빌드를 위해 유지한다.
+#![cfg_attr(not(any(target_os = "macos", test)), allow(dead_code))]
+
 use std::collections::VecDeque;
 
 use tauri::{AppHandle, Emitter, Manager, RunEvent};

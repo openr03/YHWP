@@ -1,9 +1,14 @@
 {
-  "name": "hop",
+  "name": "yhwp",
   "version": "0.1.10",
   "private": true,
-  "description": "HOP is Open HWP",
+  "description": "YHWP — 오픈소스 HWP/HWPX 데스크톱 앱 (운영: 영삼넷 youngsam.net)",
   "license": "MIT",
+  "homepage": "https://hwp.youngsam.net",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openr03/YHWP.git"
+  },
   "type": "module",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
