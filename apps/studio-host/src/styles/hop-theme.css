@@ -417,8 +417,28 @@
   cursor: text;
 }
 
-/* (이전에 시도했던 #scroll-container flex 강제 CSS 는 제거함.
-    업스트림 canvas-view 가 ResizeObserver + canvas.style.left='50%' 로
-    직접 위치를 잡는 구조라, 우리가 flex 로 덮어쓰면 오히려 망가짐.
-    대신 main.ts 가 window resize → 강제 reflow 트리거를 따로 건다.) */
+/* ═══════════════════════════════════════════════════════════
+   페이지 우측쏠림 진짜 fix — CSS 센터링 강제 복구
+   ═══════════════════════════════════════════════════════════
+   업스트림 editor.css 에는 이미 정상 센터링이 들어있음:
+     #scroll-content canvas {
+       position: absolute;
+       left: 50%;
+       transform: translateX(-50%);
+     }
+   그런데 canvas-view.ts 의 applyCanvasDisplayLayout 이 매 resize
+   콜백마다 inline style 로 이를 덮어씀:
+     canvas.style.left = `${pixelValue}px`;
+     canvas.style.transform = 'none';
+   resize 가 빠르게/단발성으로 일어나면 ResizeObserver 콜백이 한 번
+   누락되어 canvas 가 stale pixel 위치에 멈춤. 그래서 페이지가
+   한쪽으로 쏠림.
+   해결: 단일 페이지 모드 (= grid-mode 가 아닌 경우) 에서는 inline
+   style 을 무시하고 CSS 센터링을 강제. !important 로 inline 우선순위
+   거꾸로 뒤집음. grid-mode 일 때는 그대로 JS 위치 사용 (다중 페이지
+   배치라 픽셀 위치가 의미 있음). */
+#scroll-content:not(.grid-mode) > canvas {
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+}
 
