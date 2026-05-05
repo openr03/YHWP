@@ -1,15 +1,13 @@
 /**
- * HOP 제품 정보 다이얼로그
+ * YHWP 제품 정보 다이얼로그
  *
- * 업스트림 rhwp AboutDialog 를 확장하여 HOP 만의 정보를 표시한다.
- * - 상단 브랜드 영역 (로고 + 워드마크)
- * - HOP 버전 + 기술 스택
- * - 영삼넷 (youngsam.net) fork & 호스팅 카드
- * - rhwp 엔진 크레딧 카드
- * - 업스트림 고지/라이선스/저작권 (그대로 유지)
- *
- * Why: 단순히 버전만 표시하던 기본 About 을 정식 제품 정보로 격상.
- * fork 운영자(영삼넷) 정보를 명확히 노출.
+ * 업스트림 AboutDialog (modal popup) 를 확장하여 YHWP 정체성으로 채운다.
+ * - 상단 브랜드 영역 (YHWP 로고 + 워드마크)
+ * - YHWP 버전
+ * - 영삼넷 (youngsam.net) 카드 하나만
+ * - 업스트림 이름 / 외부 개발자 크레딧 카드는 모두 숨김
+ *   (단, MIT 라이선스가 요구하는 라이선스 표 + 업스트림 저작권 줄은 보존 —
+ *    이건 법적 의무라 임의 제거 불가, 대신 작게 표시)
  */
 
 import { AboutDialog as UpstreamAboutDialog } from '@upstream/ui/about-dialog';
@@ -53,34 +51,15 @@ interface InfoCard {
   links: InfoLink[];
 }
 
-const HOP_FORK_CARD: InfoCard = {
+const YHWP_CARD: InfoCard = {
   emoji: '🌐',
   title: '영삼넷',
-  subtitle: 'Fork & Hosting · youngsam.net',
+  subtitle: 'youngsam.net',
   description:
-    'HOP 의 fork 빌드와 hwp.youngsam.net 다운로드 사이트를 운영합니다.',
+    'YHWP 제작 · 운영 · hwp.youngsam.net 다운로드 사이트 운영.',
   links: [
     { label: 'hwp.youngsam.net', url: 'https://hwp.youngsam.net' },
     { label: 'youngsam.net', url: 'https://youngsam.net' },
-  ],
-};
-
-const HOP_PROJECT_CARD: InfoCard = {
-  emoji: '📦',
-  title: 'HOP',
-  subtitle: '업스트림 프로젝트 · MIT License',
-  links: [
-    { label: 'GitHub: golbin/hop', url: 'https://github.com/golbin/hop' },
-    { label: '릴리즈 노트', url: 'https://github.com/golbin/hop/releases' },
-  ],
-};
-
-const RHWP_ENGINE_CARD: InfoCard = {
-  emoji: '⚙️',
-  title: 'rhwp',
-  subtitle: 'HWP 엔진 · by Edward Kim',
-  links: [
-    { label: 'GitHub: edwardkim/rhwp', url: 'https://github.com/edwardkim/rhwp' },
   ],
 };
 
@@ -88,10 +67,10 @@ function buildBrand(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'about-brand';
   wrap.innerHTML = `
-    <img class="about-brand-logo" src="/favicon.ico" alt="HOP" width="40" height="40" />
+    <img class="about-brand-logo" src="/favicon.ico" alt="YHWP" width="40" height="40" />
     <div class="about-brand-text">
-      <div class="about-brand-name">HOP</div>
-      <div class="about-brand-tag">Open HWP · 오픈소스 HWP 데스크톱 앱</div>
+      <div class="about-brand-name">YHWP</div>
+      <div class="about-brand-tag">오픈소스 HWP / HWPX 데스크톱 앱</div>
     </div>
   `;
   return wrap;
@@ -124,80 +103,82 @@ function buildCard(card: InfoCard): HTMLElement {
   return el;
 }
 
-function buildSectionTitle(text: string): HTMLElement {
-  const t = document.createElement('div');
-  t.className = 'about-section-title';
-  t.textContent = text;
-  return t;
-}
-
 export class AboutDialog extends UpstreamAboutDialog {
   protected override createBody(): HTMLElement {
     const body = super.createBody();
     body.classList.add('about-body-hop');
 
-    // 1) 상단 브랜드 영역 — 맨 앞에 삽입
+    // 1) 상단 YHWP 브랜드
     body.insertBefore(buildBrand(), body.firstChild);
 
-    // 2) HOP 버전 (업스트림에서 영문 명칭이 길게 표시되니, 더 깔끔하게)
+    // 2) 업스트림 영문 제품명 ("HWP 5.0 Compatible Module for Rust") 숨김
     const productEn = body.querySelector('.about-product-name');
-    if (productEn instanceof HTMLElement) {
-      productEn.style.display = 'none';
-    }
+    if (productEn instanceof HTMLElement) productEn.style.display = 'none';
+
+    // 3) 한글 제품 설명 — 중립적인 문구로 교체
     const productKo = body.querySelector('.about-product-name-ko');
     if (productKo instanceof HTMLElement) {
       productKo.textContent = 'HWP / HWPX 문서 데스크톱 앱';
       productKo.classList.add('about-product-name-ko-hop');
     }
 
-    // 3) HOP 버전 라벨 (업스트림은 rhwp 버전 — HOP 버전을 위에 큼직하게)
+    // 4) 버전: 업스트림이 보여주던 "Version X.Y.Z" 줄을 작은 회색으로 격하시키고,
+    //    위에 큰 "YHWP vX.Y.Z" 라벨을 추가
     const version = body.querySelector('.about-version');
     if (version instanceof HTMLElement) {
-      version.classList.add('about-version-rhwp');
-      version.textContent = `rhwp engine ${__APP_VERSION__}`;
-      const hopBig = document.createElement('div');
-      hopBig.className = 'about-version-hop';
-      hopBig.textContent = `HOP ${__HOP_VERSION__}`;
-      version.parentNode?.insertBefore(hopBig, version);
+      version.style.display = 'none';
     }
-
-    // 기존 super 가 추가한 .about-hop-version 은 이제 중복 — 제거
     body.querySelector('.about-hop-version')?.remove();
 
-    // 4) 기술 스택 다음에 fork & engine 카드 섹션 삽입
+    const yhwpBig = document.createElement('div');
+    yhwpBig.className = 'about-version-hop';
+    yhwpBig.textContent = `YHWP ${__HOP_VERSION__}`;
     const tech = body.querySelector('.about-tech');
+    if (tech?.parentNode) {
+      tech.parentNode.insertBefore(yhwpBig, tech);
+    } else if (productKo?.parentNode) {
+      productKo.parentNode.insertBefore(yhwpBig, productKo.nextSibling);
+    }
+
+    // 5) 기술 스택 ("Rust + WebAssembly + TypeScript") — 그대로 두되 숨길 수도 있음
+    //    (지금은 그대로 표시)
+
+    // 6) 영삼넷 카드 1개만 (HOP / rhwp 카드 제거)
     const cardsWrap = document.createElement('div');
     cardsWrap.className = 'about-info-cards';
-    cardsWrap.appendChild(buildCard(HOP_FORK_CARD));
-    cardsWrap.appendChild(buildCard(HOP_PROJECT_CARD));
-    cardsWrap.appendChild(buildCard(RHWP_ENGINE_CARD));
-
-    const sectionTitle = buildSectionTitle('프로젝트 & 호스팅');
+    cardsWrap.appendChild(buildCard(YHWP_CARD));
 
     if (tech?.parentNode) {
-      tech.parentNode.insertBefore(sectionTitle, tech.nextSibling);
-      tech.parentNode.insertBefore(cardsWrap, sectionTitle.nextSibling);
+      tech.parentNode.insertBefore(cardsWrap, tech.nextSibling);
     } else {
-      body.appendChild(sectionTitle);
       body.appendChild(cardsWrap);
     }
 
-    // 5) 라이선스 섹션 제목을 통일된 스타일로
+    // 7) 업스트림의 "한글과컴퓨터 공개 문서 참고" 고지문은 HWP 스펙 라이선스
+    //    상 필수 표시 — 그대로 유지하되 작게.
+
+    // 8) 라이선스 섹션 제목을 통일된 스타일로 (MIT 의무)
     const licenseTitle = body.querySelector('.about-license-title');
     if (licenseTitle instanceof HTMLElement) {
       licenseTitle.classList.add('about-section-title');
     }
 
-    // 6) HOP 저작권 추가
+    // 9) 업스트림 저작권 줄 ("© 2026 rhwp: Edward Kim") 은 MIT 의 "preserve
+    //    copyright notice" 의무라 그대로 두되, YHWP 저작권을 위에 우선 표시
     const copyright = body.querySelector('.about-copyright');
     if (copyright?.parentNode) {
       const hopCopy = document.createElement('div');
       hopCopy.className = 'about-copyright about-copyright-hop';
-      hopCopy.textContent = '© 2026 HOP contributors · 영삼넷 fork';
-      copyright.parentNode.insertBefore(hopCopy, copyright.nextSibling);
+      hopCopy.textContent = '© 2026 영삼넷 (youngsam.net)';
+      copyright.parentNode.insertBefore(hopCopy, copyright);
+      // 업스트림 저작권은 작게 표시
+      if (copyright instanceof HTMLElement) {
+        copyright.style.fontSize = '10px';
+        copyright.style.opacity = '0.55';
+      }
     }
 
-    // 7) http(s) 외부 링크는 시스템 브라우저로 열기
+    // 10) http(s) 외부 링크는 시스템 브라우저로 열기
     attachExternalLinkHandler(body);
 
     return body;
