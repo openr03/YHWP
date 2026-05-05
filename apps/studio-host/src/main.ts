@@ -1,10 +1,12 @@
 import { initHopTheme } from './hop-theme';
 import { initRecentDocs } from './ui/recent-docs';
 import { scheduleHopWindowShow } from './hop-window-show';
+import { initHopResizeTrigger } from './hop-resize-trigger';
 import { createBridge, isTauriRuntime } from '@/core/bridge-factory';
 
 initHopTheme();
 scheduleHopWindowShow();
+initHopResizeTrigger();
 
 
 import {

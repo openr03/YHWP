@@ -417,30 +417,8 @@
   cursor: text;
 }
 
-/* ───────────────────────────────────────────────
-   에디터 영역 — 좁은 창에서 종이(페이지) 가 우측으로 쏠리는 증상 강제 fix
-   업스트림 layout 코드와 우선순위 경쟁이 있어 !important 사용
-   여러 자식 패턴 모두 커버.
-   ─────────────────────────────────────────────── */
-#scroll-container {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: flex-start !important;
-  overflow: auto !important;
-}
-
-/* 페이지/컨텐츠 wrapper — 콘텐츠 너비만큼 차지하면서 좌우 자동 마진 */
-#scroll-content,
-#scroll-container > * {
-  margin-left: auto !important;
-  margin-right: auto !important;
-  flex: 0 0 auto !important;
-}
-
-/* 종이 자체(보통 흰색 페이지) 가 absolute 로 배치되는 경우 대비 */
-#scroll-content [class*='page'],
-#scroll-content > svg {
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
+/* (이전에 시도했던 #scroll-container flex 강제 CSS 는 제거함.
+    업스트림 canvas-view 가 ResizeObserver + canvas.style.left='50%' 로
+    직접 위치를 잡는 구조라, 우리가 flex 로 덮어쓰면 오히려 망가짐.
+    대신 main.ts 가 window resize → 강제 reflow 트리거를 따로 건다.) */
 
