@@ -6,11 +6,11 @@
         <meta name="theme-color" content="#0d8045" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#0a0f0c" media="(prefers-color-scheme: dark)" />
 
-        <title>HOP — 오픈소스 HWP 데스크톱 앱 · hwp.youngsam.net</title>
-        <meta name="description" content="HOP는 HWP/HWPX 문서를 macOS, Windows, Linux에서 열고 편집하고 PDF로 내보낼 수 있는 오픈소스 데스크톱 앱입니다." />
+        <title>YHWP — 오픈소스 HWP 데스크톱 앱 · hwp.youngsam.net</title>
+        <meta name="description" content="YHWP는 HWP/HWPX 문서를 macOS, Windows, Linux에서 열고 편집하고 PDF로 내보낼 수 있는 오픈소스 데스크톱 앱입니다." />
 
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="HOP — 오픈소스 HWP 데스크톱 앱" />
+        <meta property="og:title" content="YHWP — 오픈소스 HWP 데스크톱 앱" />
         <meta property="og:description" content="HWP/HWPX 문서를 macOS, Windows, Linux에서 자유롭게." />
         <meta property="og:image" content="./assets/og.png" />
         <meta property="og:url" content="https://hwp.youngsam.net/" />
@@ -36,18 +36,16 @@
         <a class="skip-link" href="#main">본문으로 건너뛰기</a>
 
         <header class="topbar">
-            <a class="brand" href="./" aria-label="HOP 홈">
+            <a class="brand" href="./" aria-label="YHWP 홈">
                 <img class="brand-logo" src="./assets/logo.svg" alt="" width="32" height="32" />
-                <span class="brand-name">HOP</span>
+                <span class="brand-name">YHWP</span>
                 <span class="brand-tag">Open HWP</span>
             </a>
             <nav class="topnav" aria-label="주요 메뉴">
                 <a href="#features">기능</a>
                 <a href="#download">다운로드</a>
                 <a href="#install">설치</a>
-                <a href="#whatsnew">변경사항</a>
                 <a href="#faq">FAQ</a>
-                <a href="https://github.com/golbin/hop" target="_blank" rel="noopener">GitHub ↗</a>
             </nav>
             <div class="topactions">
                 <button id="theme-toggle" class="icon-btn" type="button" aria-label="테마 전환" title="테마 전환">
@@ -81,7 +79,7 @@
                             <span class="grad">자유롭게</span> 열고 편집하세요.
                         </h1>
                         <p class="lede">
-                            HOP는 한컴오피스 없이도 HWP/HWPX 문서를 보고, 편집하고,
+                            YHWP는 한컴오피스 없이도 HWP/HWPX 문서를 보고, 편집하고,
                             PDF로 내보낼 수 있는 <strong>오픈소스 데스크톱 앱</strong>입니다.
                             가볍고 빠르게, 그리고 무료로.
                         </p>
@@ -110,7 +108,7 @@
                     <figure class="hero-shot">
                         <div class="shot-frame">
                             <div class="shot-dots" aria-hidden="true"><span></span><span></span><span></span></div>
-                            <img src="./assets/hop-editor.webp" alt="HOP에서 HWP 문서를 연 화면 미리보기" loading="eager" fetchpriority="high" />
+                            <img src="./assets/hop-editor.webp" alt="YHWP에서 HWP 문서를 연 화면 미리보기" loading="eager" fetchpriority="high" />
                         </div>
                         <div class="shot-glow" aria-hidden="true"></div>
                     </figure>
@@ -161,9 +159,9 @@
             </section>
 
             <!-- ─── SHOWCASE ─────────────────────────── -->
-            <section class="showcase" aria-label="HOP 화면">
+            <section class="showcase" aria-label="YHWP 화면">
                 <div class="showcase-shot">
-                    <img src="./assets/hop-editor.webp" alt="HOP 메인 에디터 화면" loading="lazy" />
+                    <img src="./assets/hop-editor.webp" alt="YHWP 메인 에디터 화면" loading="lazy" />
                 </div>
             </section>
 
@@ -320,7 +318,7 @@
                         <header>
                             <span class="install-os">Windows</span>
                             <h3>SmartScreen 경고를 통과해서 설치하기</h3>
-                            <p class="install-sub">코드 서명 자격 적용 전이라 첫 실행 시 경고가 표시됩니다. 한 번만 통과하면 그 이후엔 정상 실행됩니다.</p>
+                            <p class="install-sub">코드 서명 자격 적용 전이라 첫 실행 시 경고가 표시됩니다. 한 번만 통과하면 그 이후엔 정상 실행됩니다. (설치 후 시작 메뉴에는 현재 <code>HOP</code> 으로 표시됩니다 — YHWP 자체 빌드 전환 후 변경 예정)</p>
                         </header>
                         <ol class="install-steps">
                             <li>
@@ -428,23 +426,6 @@
                 </p>
             </section>
 
-            <!-- ─── WHAT'S NEW ───────────────────────── -->
-            <section id="whatsnew" class="whatsnew" aria-labelledby="whatsnew-title">
-                <header class="section-head">
-                    <p class="section-eyebrow">변경사항</p>
-                    <h2 id="whatsnew-title">최근 릴리즈 노트</h2>
-                </header>
-                <article class="release-card">
-                    <header class="release-card-head">
-                        <h3 id="release-name">로딩 중…</h3>
-                        <p class="release-meta"><span id="release-date">—</span> · <a id="release-link" href="https://github.com/golbin/hop/releases" target="_blank" rel="noopener">전체 변경 이력 ↗</a></p>
-                    </header>
-                    <div id="release-body" class="release-body">
-                        <p>릴리즈 노트를 불러오는 중입니다…</p>
-                    </div>
-                </article>
-            </section>
-
             <!-- ─── SYSTEM REQUIREMENTS ──────────────── -->
             <section id="sysreq" class="sysreq" aria-labelledby="sysreq-title">
                 <header class="section-head">
@@ -491,7 +472,7 @@
                 <div class="faq-list">
                     <details class="faq-item">
                         <summary>한컴오피스 라이선스가 없어도 사용할 수 있나요?</summary>
-                        <p>네. HOP는 한컴오피스와 별개의 오픈소스 프로젝트입니다. HWP/HWPX 파일을 직접 파싱·렌더링하므로 한컴오피스 설치나 라이선스가 필요하지 않습니다.</p>
+                        <p>네. YHWP는 한컴오피스와 별개의 오픈소스 프로젝트입니다. HWP/HWPX 파일을 직접 파싱·렌더링하므로 한컴오피스 설치나 라이선스가 필요하지 않습니다.</p>
                     </details>
                     <details class="faq-item">
                         <summary>Windows에서 SmartScreen 경고가 뜨는데 안전한가요?</summary>
@@ -503,15 +484,15 @@
                     </details>
                     <details class="faq-item">
                         <summary>제 데이터가 외부로 전송되나요?</summary>
-                        <p>아니요. HOP는 로컬에서 모든 처리를 수행하며 텔레메트리·문서 내용 업로드를 일절 수행하지 않습니다. 네트워크는 자동 업데이트 확인(GitHub 릴리즈 메타데이터)에만 사용됩니다.</p>
+                        <p>아니요. YHWP는 로컬에서 모든 처리를 수행하며 텔레메트리·문서 내용 업로드를 일절 수행하지 않습니다. 네트워크는 자동 업데이트 확인(GitHub 릴리즈 메타데이터)에만 사용됩니다.</p>
                     </details>
                     <details class="faq-item">
                         <summary>한글 입력(IME)은 정상 동작하나요?</summary>
                         <p>macOS·Windows에서는 시스템 IME가 자연스럽게 동작합니다. Linux는 .deb/.rpm 패키지를 권장하며, AppImage는 일부 Wayland·IME 환경에서 한영 전환이 불안정할 수 있습니다.</p>
                     </details>
                     <details class="faq-item">
-                        <summary>오픈소스에 기여하려면 어떻게 하나요?</summary>
-                        <p>GitHub 저장소(<a href="https://github.com/golbin/hop" target="_blank" rel="noopener">golbin/hop</a>)에서 이슈와 PR을 환영합니다. 문서 파싱/렌더링 핵심은 <a href="https://github.com/edwardkim/rhwp" target="_blank" rel="noopener">rhwp</a>에 있습니다.</p>
+                        <summary>버그를 발견했거나 문의할 곳은 어디인가요?</summary>
+                        <p>사이트 운영(영삼넷) 관련 문의는 <a href="https://youngsam.net" target="_blank" rel="noopener">youngsam.net</a>으로, 빌드 산출물 자체는 GitHub Releases에서 직접 받으실 수 있습니다.</p>
                     </details>
                 </div>
             </section>
@@ -531,31 +512,27 @@
                 <div class="foot-brand">
                     <img src="./assets/logo.svg" alt="" width="28" height="28" />
                     <div>
-                        <p class="foot-title">HOP</p>
+                        <p class="foot-title">YHWP</p>
                         <p class="foot-sub">Open HWP — MIT License</p>
                     </div>
                 </div>
                 <div class="foot-cols">
                     <div>
-                        <h4>제품</h4>
+                        <h4>바로가기</h4>
                         <a href="#features">기능</a>
                         <a href="#download">다운로드</a>
                         <a href="#install">설치 방법</a>
                         <a href="#verify">다운로드 검증</a>
+                        <a href="#faq">FAQ</a>
                     </div>
                     <div>
-                        <h4>오픈소스</h4>
-                        <a href="https://github.com/golbin/hop" target="_blank" rel="noopener">HOP GitHub</a>
-                        <a href="https://github.com/edwardkim/rhwp" target="_blank" rel="noopener">rhwp Engine</a>
-                        <a href="https://github.com/golbin/hop/releases" target="_blank" rel="noopener">Releases</a>
-                    </div>
-                    <div>
-                        <h4>크레딧</h4>
-                        <p>HWP 엔진을 공개해주신 <a href="https://github.com/edwardkim/rhwp" target="_blank" rel="noopener">rhwp</a> 개발자분께 감사드립니다.</p>
+                        <h4>운영 / 호스팅</h4>
+                        <a href="https://youngsam.net" target="_blank" rel="noopener">영삼넷 (youngsam.net)</a>
+                        <p>이 사이트는 영삼넷이 운영합니다.</p>
                     </div>
                 </div>
             </div>
-            <p class="foot-copy">© <span id="year"></span> hwp.youngsam.net · HOP는 MIT 라이선스 오픈소스 프로젝트입니다.</p>
+            <p class="foot-copy">© <span id="year"></span> 영삼넷 · hwp.youngsam.net</p>
         </footer>
 
         <script src="./app.js" defer></script>

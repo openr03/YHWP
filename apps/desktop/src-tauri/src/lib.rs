@@ -24,9 +24,9 @@ use commands::{
     cancel_app_quit, check_external_modification, close_document, commit_staged_hwp_save,
     create_document, create_editor_window, desktop_platform, destroy_current_window, export_pdf,
     export_pdf_from_hwp_path, list_local_fonts, mark_document_dirty, mutate_document,
-    open_document_tracking, prepare_document_open, prepare_staged_hwp_pdf_export,
-    prepare_staged_hwp_save, print_webview, query_document, read_local_font, render_page_svg,
-    reveal_in_folder, take_pending_open_paths,
+    open_document_tracking, open_external_url, prepare_document_open,
+    prepare_staged_hwp_pdf_export, prepare_staged_hwp_save, print_webview, query_document,
+    read_local_font, render_page_svg, reveal_in_folder, take_pending_open_paths,
 };
 use recent_docs::{
     add_recent_doc, clear_recent_docs, get_recent_docs, remove_recent_doc, RecentDocsState,
@@ -109,6 +109,7 @@ pub fn run() {
             add_recent_doc,
             remove_recent_doc,
             clear_recent_docs,
+            open_external_url,
         ])
         .build(tauri::generate_context!())
         .expect("failed to build HOP desktop app");

@@ -356,15 +356,7 @@ async function hydrateRelease() {
         await setPrimaryDownload(detectedOS, primarySize);
     }
 
-    // Release notes
-    document.getElementById("release-name").textContent = name;
-    document.getElementById("release-date").textContent = fmtDate(
-        release.published_at,
-    );
-    document.getElementById("release-link").href = release.html_url;
-    document.getElementById("release-body").innerHTML = renderMarkdown(
-        release.body || "릴리즈 노트가 비어 있습니다.",
-    );
+    // (변경사항 섹션은 제거됨 — release-* 엘리먼트 참조 안 함)
 
     // SHA256SUMS link to versioned URL
     const sumsAsset = assetMap.get("SHA256SUMS.txt");

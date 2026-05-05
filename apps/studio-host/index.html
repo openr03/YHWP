@@ -20,9 +20,21 @@
         if (darkActive) {
           document.documentElement.classList.add('hop-dark-active-pre');
         }
+        /* Tauri 윈도우가 보이기 전에라도, 혹시 visible:false 가 안 먹는 환경에서 흰 플래시를 줄이기 위해 인라인 배경색 지정 */
+        var bg = darkActive ? '#1a221d' : '#f0f0f0';
+        document.documentElement.style.background = bg;
       } catch (_) {}
     })();
   </script>
+  <style>
+    /* 첫 페인트까지 흰색 노출 방지 */
+    html { background: #f0f0f0; }
+    html.hop-dark-active-pre,
+    html[data-theme='dark'] { background: #1a221d; }
+    @media (prefers-color-scheme: dark) {
+      html[data-theme='auto'] { background: #1a221d; }
+    }
+  </style>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>

@@ -1,8 +1,11 @@
 import { initHopTheme } from './hop-theme';
 import { initRecentDocs } from './ui/recent-docs';
+import { scheduleHopWindowShow } from './hop-window-show';
 import { createBridge, isTauriRuntime } from '@/core/bridge-factory';
 
 initHopTheme();
+scheduleHopWindowShow();
+
 
 import {
   applyDesktopChromePlatformState,

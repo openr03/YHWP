@@ -1,6 +1,270 @@
-.about-hop-version {
+/* ───────────────────────────────────────────────
+   HOP About Dialog 스타일
+   업스트림 dialog.css 의 .dialog 위에 얹는다.
+   ─────────────────────────────────────────────── */
+
+.about-body-hop {
+  padding: 4px 4px 8px;
+  font-size: var(--font-size-md);
+  line-height: 1.55;
+  color: var(--color-text);
+}
+
+/* ── 브랜드 헤더 ─────────────────────────────── */
+.about-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  background: linear-gradient(
+    135deg,
+    var(--color-accent-bg, #e7eaf4) 0%,
+    var(--color-accent-bg-light, #f0f3fa) 100%
+  );
+  border: 1px solid var(--color-border-light, #d0d0d0);
+  border-radius: 8px;
+}
+
+.about-brand-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--color-surface, #fff);
+  padding: 4px;
+  border: 1px solid var(--color-border-light, #d0d0d0);
+  flex-shrink: 0;
+}
+
+.about-brand-text {
+  min-width: 0;
+}
+
+.about-brand-name {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text, #333);
+  line-height: 1.1;
+}
+
+.about-brand-tag {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--color-text-secondary, #555);
+}
+
+/* ── 제품명/버전 ─────────────────────────────── */
+.about-product-name-ko-hop {
+  text-align: center;
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted, #666);
+  margin: 0 0 12px;
+}
+
+.about-version-hop {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text, #333);
+  margin: 4px 0 0;
+}
+
+.about-version-rhwp {
+  text-align: center;
   font-size: var(--font-size-sm);
-  color: var(--color-text-placeholder);
-  margin-top: -8px;
+  color: var(--color-text-placeholder, #999);
+  margin: 2px 0 8px !important;
+}
+
+.about-tech {
+  text-align: center;
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+  font-size: var(--font-size-xs, 10px);
+  color: var(--color-text-muted, #666);
+  margin: 0 0 16px;
+  padding: 4px 10px;
+  background: var(--color-bg-light, #f5f5f5);
+  border-radius: 999px;
+  display: inline-block;
+  width: auto;
+  margin-left: auto;
+  margin-right: auto;
+}
+.about-body-hop .about-tech {
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── 섹션 제목 ───────────────────────────────── */
+.about-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-muted, #666);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 18px 0 8px;
+}
+
+/* ── 정보 카드 ───────────────────────────────── */
+.about-info-cards {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.about-info-card {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--color-surface-raised, #fafafa);
+  border: 1px solid var(--color-border-light, #d0d0d0);
+  border-radius: 8px;
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.about-info-card:hover {
+  border-color: var(--color-primary-light, #4a90d9);
+  transform: translateY(-1px);
+}
+
+.about-info-emoji {
+  font-size: 20px;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: var(--color-accent-bg, #e7eaf4);
+  border-radius: 8px;
+}
+
+.about-info-body {
+  min-width: 0;
+}
+
+.about-info-title {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--color-text, #333);
+  letter-spacing: -0.01em;
+}
+
+.about-info-subtitle {
+  margin-top: 1px;
+  font-size: var(--font-size-xs, 10px);
+  color: var(--color-text-muted, #666);
+}
+
+.about-info-desc {
+  margin-top: 6px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary, #555);
+  line-height: 1.55;
+}
+
+.about-info-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.about-info-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border-light, #d0d0d0);
+  border-radius: 999px;
+  color: var(--color-primary-dark, #335095);
+  font-size: var(--font-size-xs, 10px);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.about-info-link:hover {
+  background: var(--color-primary, #6182d6);
+  border-color: var(--color-primary, #6182d6);
+  color: #fff;
+  text-decoration: none;
+}
+
+.about-info-arrow {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* ── 고지/라이선스 ───────────────────────────── */
+.about-notice {
+  margin: 18px 0 14px !important;
+  padding: 10px 12px;
+  background: var(--color-bg-light, #f5f5f5);
+  border-left: 3px solid var(--color-primary, #6182d6);
+  border-radius: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary, #555);
+  line-height: 1.6;
+}
+
+.about-license-table {
+  width: 100%;
   margin-bottom: 12px;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs, 10px);
+}
+
+.about-license-table tr {
+  border-bottom: 1px solid var(--color-border-lighter, #d8d8d8);
+}
+
+.about-license-table tr:last-child {
+  border-bottom: none;
+}
+
+.about-license-table td {
+  padding: 6px 8px;
+  color: var(--color-text-secondary, #555);
+}
+
+.about-license-table td:first-child {
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+  font-weight: 600;
+  color: var(--color-text, #333);
+}
+
+.about-license-table td:last-child {
+  text-align: right;
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+  color: var(--color-text-muted, #666);
+}
+
+/* ── 저작권 ──────────────────────────────────── */
+.about-copyright {
+  text-align: center;
+  font-size: var(--font-size-xs, 10px);
+  color: var(--color-text-placeholder, #999);
+  margin-top: 4px !important;
+}
+
+.about-copyright-hop {
+  margin-top: 2px !important;
+  color: var(--color-primary-dark, #335095);
+  font-weight: 600;
+}
+
+/* 기존 호환용 (이제는 안 보임) */
+.about-hop-version {
+  display: none;
 }

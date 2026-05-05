@@ -259,6 +259,19 @@ pub fn print_webview(window: WebviewWindow) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn open_external_url(url: String) -> Result<(), String> {
+    // 외부 브라우저로만 열도록 http/https 만 허용 (file://, javascript: 등 차단)
+    let trimmed = url.trim();
+    if !(trimmed.starts_with("https://") || trimmed.starts_with("http://")) {
+        return Err(format!(
+            "허용되지 않은 URL 스킴입니다 (https/http 만 허용): {}",
+            trimmed
+        ));
+    }
+    open::that(trimmed).map_err(|e| format!("외부 링크를 열 수 없습니다: {}", e))
+}
+
+#[tauri::command]
 pub fn destroy_current_window(window: WebviewWindow) -> Result<(), String> {
     window
         .destroy()

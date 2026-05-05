@@ -1120,7 +1120,7 @@ h1 {
 
 .foot-cols {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 28px;
 }
 .foot-cols h4 {
@@ -1158,12 +1158,14 @@ h1 {
     text-align: center;
 }
 
+@media (max-width: 980px) {
+    .foot-cols {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
 @media (max-width: 760px) {
     .foot-inner {
         grid-template-columns: 1fr;
-    }
-    .foot-cols {
-        grid-template-columns: repeat(2, 1fr);
     }
 }
 @media (max-width: 480px) {
