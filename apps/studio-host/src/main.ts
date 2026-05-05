@@ -2,11 +2,13 @@ import { initHopTheme } from './hop-theme';
 import { initRecentDocs } from './ui/recent-docs';
 import { scheduleHopWindowShow } from './hop-window-show';
 import { initHopResizeTrigger } from './hop-resize-trigger';
+import { initHopCanvasCenter } from './hop-canvas-center';
 import { createBridge, isTauriRuntime } from '@/core/bridge-factory';
 
 initHopTheme();
 scheduleHopWindowShow();
 initHopResizeTrigger();
+initHopCanvasCenter();
 
 
 import {
