@@ -191,7 +191,48 @@
 }
 
 /* ───────────────────────────────────────────────
-   상태바 우측 테마 토글 버튼
+   메뉴바 우측 actions (테마 토글 컨테이너) — Hancom 의 "로그인" 위치
+   ─────────────────────────────────────────────── */
+.hop-menubar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding-right: 10px;
+}
+
+/* prominent 변형: 메뉴바 안에서 한눈에 보이는 칩 형태 */
+.hop-theme-toggle-prominent {
+  width: auto !important;
+  height: auto !important;
+  padding: 4px 10px 4px 8px !important;
+  gap: 6px;
+  display: inline-flex !important;
+  align-items: center;
+  border: 1px solid var(--color-border-light, #d0d0d0) !important;
+  background: var(--color-surface, #fff) !important;
+  color: var(--color-text-secondary, #555) !important;
+  border-radius: 6px !important;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.hop-theme-toggle-prominent:hover {
+  background: var(--color-accent-bg, #e7eaf4) !important;
+  border-color: var(--color-primary, #6182d6) !important;
+  color: var(--color-primary-dark, #335095) !important;
+}
+.hop-theme-toggle-prominent svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+.hop-theme-toggle-label {
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ───────────────────────────────────────────────
+   상태바 (fallback) 테마 토글 — 작은 변형
    ─────────────────────────────────────────────── */
 .hop-theme-toggle {
   display: inline-grid;
@@ -245,3 +286,126 @@
 :root[data-theme='auto'] .hop-theme-toggle .icon-auto {
   display: inline-block;
 }
+
+/* prominent 토글의 라벨 — 현재 테마에 따라 항상 적절한 단어가 보이도록
+   (createToggleButton 에서 매 클릭마다 갱신하므로 별도 처리 불필요) */
+
+/* ───────────────────────────────────────────────
+   메뉴바 — 좁아질 때 가로 스크롤로 잘림 방지
+   ─────────────────────────────────────────────── */
+#menu-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+#menu-bar > .menu-item {
+  flex: 0 0 auto;
+}
+#menu-bar > .menu-item:last-of-type ~ * {
+  /* hop-menubar-actions 가 마지막에 와도 잘리지 않도록 */
+  flex: 0 0 auto;
+}
+
+/* ───────────────────────────────────────────────
+   도구상자 (#icon-toolbar) — 좁아지면 가로 스크롤 + 다크모드 폴리시
+   ─────────────────────────────────────────────── */
+#icon-toolbar {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  flex-wrap: nowrap;
+}
+#icon-toolbar::-webkit-scrollbar {
+  height: 6px;
+}
+.hop-dark-active #icon-toolbar {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+.hop-dark-active #icon-toolbar .tb-sep {
+  background: var(--color-border);
+}
+.hop-dark-active #icon-toolbar .tb-btn {
+  color: var(--color-text);
+  border-radius: 4px;
+}
+.hop-dark-active #icon-toolbar .tb-btn:hover {
+  background: var(--color-hover-bg);
+}
+.hop-dark-active #icon-toolbar .tb-btn.active,
+.hop-dark-active #icon-toolbar .tb-btn:active {
+  background: var(--color-active-bg);
+}
+.hop-dark-active #icon-toolbar .tb-label,
+.hop-dark-active #icon-toolbar .tb-icon-text {
+  color: var(--color-text);
+}
+
+/* ───────────────────────────────────────────────
+   서식 도구 모음 (#style-bar) — 좁아지면 가로 스크롤 + 다크모드 폴리시
+   ─────────────────────────────────────────────── */
+#style-bar {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  flex-wrap: nowrap;
+}
+#style-bar::-webkit-scrollbar {
+  height: 6px;
+}
+.hop-dark-active #style-bar {
+  background: var(--color-bg-light);
+  border-bottom: 1px solid var(--color-border);
+}
+.hop-dark-active #style-bar .sb-btn {
+  color: var(--color-text);
+  border-radius: 4px;
+}
+.hop-dark-active #style-bar .sb-btn:hover {
+  background: var(--color-hover-bg);
+}
+.hop-dark-active #style-bar .sb-btn.active {
+  background: var(--color-active-bg);
+}
+.hop-dark-active #style-bar .sb-sep {
+  background: var(--color-border);
+}
+.hop-dark-active #style-bar .sb-combo,
+.hop-dark-active #style-bar .sb-size,
+.hop-dark-active #style-bar .sb-ls-select {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border-input);
+}
+.hop-dark-active #style-bar .sb-arrow {
+  color: var(--color-text-secondary);
+}
+.hop-dark-active #style-bar .sb-arrow:hover {
+  color: var(--color-text);
+  background: var(--color-hover-bg);
+}
+
+/* ───────────────────────────────────────────────
+   에디터 영역 — 좁은 창에서 종이가 우측으로 쏠리는 증상 완화
+   scroll-content 가 항상 좌측 정렬 + 페이지는 가운데 정렬되도록
+   ─────────────────────────────────────────────── */
+#scroll-container {
+  display: block;
+  text-align: center; /* 페이지를 가운데 정렬 (페이지가 인라인블록이라면) */
+}
+#scroll-content {
+  display: inline-block;
+  text-align: initial;
+  margin: 0 auto;
+  min-width: 0;
+}
+/* 매우 좁은 창에서도 컨테이너가 음수 width 가 안되도록 */
+@media (max-width: 800px) {
+  #scroll-content {
+    margin: 0;
+  }
+}
+

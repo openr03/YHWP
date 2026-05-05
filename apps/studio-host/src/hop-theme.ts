@@ -1,12 +1,10 @@
 /**
- * HOP 테마 토글
+ * YHWP 테마 토글
  *
  * - localStorage `hop:theme` 에 'auto' | 'light' | 'dark' 저장
  * - <html data-theme="..."> 속성으로 CSS 변수 오버라이드를 활성화
- * - 상태 표시줄 우측에 토글 버튼을 주입한다 (3-state cycle)
- *
- * Why: 업스트림 rhwp-studio 가 단일 라이트 테마만 가정하므로,
- * HOP 오버레이에서 토큰 오버라이드 + 토글 UI를 추가한다.
+ * - Tauri 환경이면 OS 제목 표시줄 (min/max/close 라인) 색상도 setTheme() 로 동기화
+ * - 메뉴바 우측에 토글 버튼 주입 (3-state cycle: auto → light → dark)
  */
 
 const STORAGE_KEY = 'hop:theme';
@@ -41,9 +39,32 @@ function applyDocumentClass(theme: HopTheme): void {
   document.body.classList.toggle('hop-dark-active', isEffectivelyDark(theme));
 }
 
+/**
+ * Tauri 환경이라면 OS 제목 표시줄도 테마에 맞춰 변경.
+ * - Windows: 타이틀바 dark/light 자동 전환
+ * - macOS: vibrancy 갱신
+ * 'auto' 는 시스템 prefers-color-scheme 따라가도록 null 전달.
+ */
+async function syncWindowChrome(theme: HopTheme): Promise<void> {
+  try {
+    if (typeof window === 'undefined') return;
+    if (!('__TAURI_INTERNALS__' in window)) return;
+    const { getCurrentWebviewWindow } = await import(
+      '@tauri-apps/api/webviewWindow'
+    );
+    const win = getCurrentWebviewWindow();
+    const next = theme === 'auto' ? null : theme;
+    await win.setTheme(next);
+  } catch (err) {
+    // setTheme 실패는 OS 제목 표시줄만 안 바뀜 — 본문 테마는 정상 동작
+    console.warn('[hop-theme] OS chrome 테마 동기화 실패:', err);
+  }
+}
+
 export function setHopTheme(theme: HopTheme): void {
   document.documentElement.dataset.theme = theme;
   applyDocumentClass(theme);
+  void syncWindowChrome(theme);
   persist(theme);
 }
 
@@ -54,7 +75,7 @@ export function getHopTheme(): HopTheme {
 }
 
 function nextTheme(current: HopTheme): HopTheme {
-  // auto -> light -> dark -> auto
+  // auto → light → dark → auto
   if (current === 'auto') return 'light';
   if (current === 'light') return 'dark';
   return 'auto';
@@ -79,56 +100,83 @@ const AUTO_ICON = `
     <path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/>
   </svg>`;
 
-function labelFor(theme: HopTheme): string {
-  if (theme === 'dark') return '다크 테마 (다음: 자동)';
-  if (theme === 'light') return '라이트 테마 (다음: 다크)';
-  return '시스템 자동 (다음: 라이트)';
+function labelText(theme: HopTheme): string {
+  if (theme === 'dark') return '다크';
+  if (theme === 'light') return '라이트';
+  return '자동';
 }
 
-function injectButton(): HTMLButtonElement | null {
-  const statusBar = document.getElementById('status-bar');
-  if (!statusBar) return null;
-  const right = statusBar.querySelector('.stb-right');
-  if (!right) return null;
-  if (right.querySelector('.hop-theme-toggle')) return null;
+function tooltipFor(theme: HopTheme): string {
+  if (theme === 'dark') return '다크 테마 (클릭 → 자동)';
+  if (theme === 'light') return '라이트 테마 (클릭 → 다크)';
+  return '시스템 자동 (클릭 → 라이트)';
+}
 
+function createToggleButton(): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.className = 'hop-theme-toggle';
-  btn.innerHTML = `${SUN_ICON}${MOON_ICON}${AUTO_ICON}`;
-  btn.title = labelFor(getHopTheme());
+  btn.className = 'hop-theme-toggle hop-theme-toggle-prominent';
+  btn.innerHTML = `
+    ${SUN_ICON}${MOON_ICON}${AUTO_ICON}
+    <span class="hop-theme-toggle-label">${labelText(getHopTheme())}</span>
+  `;
+  btn.title = tooltipFor(getHopTheme());
   btn.setAttribute('aria-label', '테마 전환');
-
-  // 줌 컨트롤 좌측에 삽입 (구분자 다음)
-  const firstChild = right.firstElementChild;
-  if (firstChild) {
-    right.insertBefore(btn, firstChild);
-    const sep = document.createElement('span');
-    sep.className = 'stb-divider';
-    right.insertBefore(sep, btn.nextSibling);
-  } else {
-    right.appendChild(btn);
-  }
 
   btn.addEventListener('click', () => {
     const next = nextTheme(getHopTheme());
     setHopTheme(next);
-    btn.title = labelFor(next);
+    btn.title = tooltipFor(next);
+    const label = btn.querySelector('.hop-theme-toggle-label');
+    if (label) label.textContent = labelText(next);
   });
 
   return btn;
 }
 
+/**
+ * 메뉴바 우측에 토글 주입. 메뉴바가 못 찾으면 status bar 우측 fallback.
+ */
+function injectButton(): HTMLButtonElement | null {
+  // 1순위: 메뉴바 (#menu-bar) — 시각적으로 가장 잘 보이는 위치
+  const menuBar = document.getElementById('menu-bar');
+  if (menuBar && !menuBar.querySelector('.hop-theme-toggle')) {
+    const wrap = document.createElement('div');
+    wrap.className = 'hop-menubar-actions';
+    const btn = createToggleButton();
+    wrap.appendChild(btn);
+    menuBar.appendChild(wrap);
+    return btn;
+  }
+
+  // 2순위 fallback: status bar 우측
+  const statusBar = document.getElementById('status-bar');
+  const right = statusBar?.querySelector('.stb-right');
+  if (right && !right.querySelector('.hop-theme-toggle')) {
+    const btn = createToggleButton();
+    btn.classList.remove('hop-theme-toggle-prominent'); // 작은 버전
+    const firstChild = right.firstElementChild;
+    if (firstChild) right.insertBefore(btn, firstChild);
+    else right.appendChild(btn);
+    return btn;
+  }
+
+  return null;
+}
+
 export function initHopTheme(): void {
   // index.html 의 인라인 스크립트가 이미 data-theme 을 셋업했을 수 있다.
-  // 여기서는 본문 클래스(.hop-dark-active) 만 보강하고 토글 버튼을 주입.
+  // 여기서는 본문 클래스(.hop-dark-active) + OS chrome 보강 + 토글 주입.
   const current = readStoredTheme();
   setHopTheme(current);
 
   // 시스템 테마 변경 시, auto 모드라면 즉시 반영
   const mql = window.matchMedia?.('(prefers-color-scheme: dark)');
   mql?.addEventListener?.('change', () => {
-    if (getHopTheme() === 'auto') applyDocumentClass('auto');
+    if (getHopTheme() === 'auto') {
+      applyDocumentClass('auto');
+      void syncWindowChrome('auto');
+    }
   });
 
   if (document.readyState === 'loading') {
