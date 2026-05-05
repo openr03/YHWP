@@ -56,9 +56,7 @@ jobs:
             gh release create "$tag" \
               --title "YHWP $tag" \
               --draft \
-              --notes "YHWP $tag — 영삼넷 fork build.
-
-다운로드: https://hwp.youngsam.net"
+              --notes "YHWP ${tag} — 영삼넷 fork build. 다운로드: https://hwp.youngsam.net"
           fi
 
   # ─────────────────────────────────────────────
