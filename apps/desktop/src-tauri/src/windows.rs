@@ -25,10 +25,9 @@ pub fn create_editor_window_with_label(app: &AppHandle, label: &str) -> Result<(
     let (width, height) = new_window_size(app);
 
     let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
-        .title("HOP")
+        .title("YHWP")
         .inner_size(width, height)
         .min_inner_size(MIN_EDITOR_WINDOW_WIDTH, MIN_EDITOR_WINDOW_HEIGHT)
-        .visible(false)
         .center();
     #[cfg(windows)]
     let builder = builder.zoom_hotkeys_enabled(true);

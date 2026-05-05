@@ -1,10 +1,10 @@
 /**
  * 윈도우 첫 페인트 후 보이기 (흰 화면 플래시 방지)
  *
- * tauri.conf.json 과 windows.rs 에서 visible:false 로 시작하므로,
- * 여기서 첫 layout 이 그려진 직후 show() 를 호출한다.
- *
- * 안전망: 어떤 이유로든 여기까지 도달하지 못해도 1.5초 후 강제로 표시한다.
+ * NOTE: visible:false 후 show() 가 안 불려서 창이 안 뜨는 사고를 방지하기
+ * 위해, 현재는 tauri.conf.json + windows.rs 양쪽 모두 visible:true (default).
+ * 이 모듈의 show() 호출은 이미 보이는 창에 대한 no-op 이 된다.
+ * backgroundColor 가 다크 톤으로 잡혀 있어 흰 플래시는 거의 안 보인다.
  */
 
 import { isTauriRuntime } from '@/core/bridge-factory';
