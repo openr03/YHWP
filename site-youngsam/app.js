@@ -73,22 +73,22 @@ const OS_INFO = {
         meta: (arch, size) =>
             `macOS ${arch === "arm64" ? "Apple Silicon" : "Intel"} · .dmg${size ? ` · ${size}` : ""}`,
         asset: (arch) =>
-            arch === "arm64" ? "HOP-macos-arm64.dmg" : "HOP-macos-x64.dmg",
+            arch === "arm64" ? "YHWP-macos-arm64.dmg" : "YHWP-macos-x64.dmg",
     },
     windows: {
         label: () => "Windows용 다운로드",
         meta: (_a, size) => `Windows x64 · MSI 인스톨러${size ? ` · ${size}` : ""}`,
-        asset: () => "HOP-windows-x64.msi",
+        asset: () => "YHWP-windows-x64.msi",
     },
     linux: {
         label: () => "Linux용 다운로드 (.deb)",
         meta: (_a, size) =>
             `Debian/Ubuntu · x64 · .deb${size ? ` · ${size}` : ""}`,
-        asset: () => "HOP-linux-x64.deb",
+        asset: () => "YHWP-linux-x64.deb",
     },
     mobile: {
         label: () => "데스크톱 앱 보기",
-        meta: () => "HOP는 데스크톱 앱입니다. PC에서 다시 방문해 주세요.",
+        meta: () => "YHWP는 데스크톱 앱입니다. PC에서 다시 방문해 주세요.",
         asset: () => null,
     },
     unknown: {
@@ -99,7 +99,7 @@ const OS_INFO = {
     },
 };
 
-const REPO = "golbin/hop";
+const REPO = "openr03/YHWP";
 const RELEASE_API = `https://api.github.com/repos/${REPO}/releases/latest`;
 const RELEASES_URL = `https://github.com/${REPO}/releases`;
 
@@ -304,7 +304,7 @@ async function hydrateRelease() {
     }
 
     const tag = release.tag_name || "v0.1.x";
-    const name = release.name || `HOP ${tag}`;
+    const name = release.name || `YHWP ${tag}`;
 
     // Hero version chip
     document.getElementById("hero-version").textContent =

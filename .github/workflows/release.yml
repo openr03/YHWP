@@ -1,0 +1,236 @@
+name: YHWP Release
+
+# - 태그 push (v*) 시 자동 빌드 + 릴리즈 업로드
+# - workflow_dispatch 로 수동 실행 (테스트용 태그 지정 가능)
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '릴리즈 태그 (예: v0.1.10-test)'
+        required: true
+        default: 'v0.1.10-dev'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ─────────────────────────────────────────────
+  # 1) draft 릴리즈 먼저 생성 (모든 빌드가 같은 곳에 업로드)
+  # ─────────────────────────────────────────────
+  create-release:
+    name: Prepare draft release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="${{ inputs.tag }}"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Resolved tag: $tag"
+
+      - name: Create draft release if missing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          tag='${{ steps.tag.outputs.tag }}'
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists. Skipping create."
+          else
+            gh release create "$tag" \
+              --title "YHWP $tag" \
+              --draft \
+              --notes "YHWP $tag — 영삼넷 fork build.
+
+다운로드: https://hwp.youngsam.net"
+          fi
+
+  # ─────────────────────────────────────────────
+  # 2) 플랫폼별 빌드 + 업로드
+  # ─────────────────────────────────────────────
+  build:
+    name: Build ${{ matrix.label }}
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: macos-arm64
+            os: macos-latest
+            rust_target: aarch64-apple-darwin
+            tauri_target: aarch64-apple-darwin
+          - label: macos-x64
+            os: macos-13
+            rust_target: x86_64-apple-darwin
+            tauri_target: x86_64-apple-darwin
+          - label: windows-x64
+            os: windows-latest
+            rust_target: ''
+            tauri_target: ''
+          - label: linux-x64
+            os: ubuntu-22.04
+            rust_target: ''
+            tauri_target: ''
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-${{ matrix.label }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ matrix.label }}-
+
+      - name: Linux 의존성 설치
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libsoup-3.0-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build studio host
+        run: pnpm --filter @golbin/hop-studio-host build
+
+      - name: Build Tauri bundle
+        shell: bash
+        run: |
+          set -euxo pipefail
+          if [ -n "${{ matrix.tauri_target }}" ]; then
+            pnpm --filter hop-desktop tauri build --target ${{ matrix.tauri_target }}
+          else
+            pnpm --filter hop-desktop tauri build
+          fi
+
+      - name: Rename + upload artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.create-release.outputs.tag }}
+          LABEL: ${{ matrix.label }}
+        run: |
+          set -euo pipefail
+
+          # bundle 경로 결정 (cross-compile 여부 따라 다름)
+          if [ -n "${{ matrix.tauri_target }}" ]; then
+            base="apps/desktop/src-tauri/target/${{ matrix.tauri_target }}/release/bundle"
+          else
+            base="apps/desktop/src-tauri/target/release/bundle"
+          fi
+
+          echo "==== bundle 디렉터리 내용 ===="
+          find "$base" -type f \( -name '*.dmg' -o -name '*.msi' -o -name '*.exe' -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) -print
+
+          # 플랫폼별 매핑
+          # arr: src_glob | dest_name
+          declare -a maps=()
+          case "$LABEL" in
+            macos-arm64)
+              maps=( "$base/dmg/*.dmg|YHWP-macos-arm64.dmg" )
+              ;;
+            macos-x64)
+              maps=( "$base/dmg/*.dmg|YHWP-macos-x64.dmg" )
+              ;;
+            windows-x64)
+              maps=(
+                "$base/msi/*.msi|YHWP-windows-x64.msi"
+                "$base/nsis/*-setup.exe|YHWP-windows-x64.exe"
+              )
+              ;;
+            linux-x64)
+              maps=(
+                "$base/deb/*.deb|YHWP-linux-x64.deb"
+                "$base/rpm/*.rpm|YHWP-linux-x64.rpm"
+                "$base/appimage/*.AppImage|YHWP-linux-x64.AppImage"
+              )
+              ;;
+          esac
+
+          for entry in "${maps[@]}"; do
+            src_glob="${entry%|*}"
+            dest_name="${entry#*|}"
+            # shellcheck disable=SC2086
+            src=$(ls -1 $src_glob 2>/dev/null | head -n1 || true)
+            if [ -z "$src" ] || [ ! -f "$src" ]; then
+              echo "::warning::No artifact matched $src_glob — skipping"
+              continue
+            fi
+            echo "uploading: $src -> $dest_name"
+            cp "$src" "/tmp/$dest_name"
+            gh release upload "$TAG" "/tmp/$dest_name" --clobber
+          done
+
+  # ─────────────────────────────────────────────
+  # 3) SHA256SUMS.txt 생성 + draft 해제
+  # ─────────────────────────────────────────────
+  finalize:
+    name: Finalize release
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate SHA256SUMS.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.create-release.outputs.tag }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p sums
+          cd sums
+          # 모든 자산 다운로드 후 해시 계산
+          gh release download "$TAG" --pattern '*' --repo "$REPO"
+          sha256sum YHWP-* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          gh release upload "$TAG" SHA256SUMS.txt --clobber --repo "$REPO"
+
+      - name: Publish (un-draft) release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.create-release.outputs.tag }}
+        shell: bash
+        run: gh release edit "$TAG" --draft=false --prerelease=false

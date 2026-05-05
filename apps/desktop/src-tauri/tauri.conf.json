@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "HOP",
+  "productName": "YHWP",
   "version": "0.1.10",
-  "identifier": "net.golbin.hop",
+  "identifier": "net.youngsam.yhwp",
   "build": {
     "beforeDevCommand": "cd ../.. && pnpm --filter @golbin/hop-studio-host dev",
     "beforeBuildCommand": "cd ../.. && pnpm --filter @golbin/hop-studio-host build",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "HOP",
+        "title": "YHWP",
         "label": "main",
         "url": "index.html",
         "width": 1280,
@@ -31,11 +31,11 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "publisher": "golbin.net",
-    "shortDescription": "Open desktop editor for HWP and HWPX documents",
-    "longDescription": "HOP is Open HWP. HOP opens, edits, saves, and exports HWP/HWPX documents.",
+    "publisher": "youngsam.net",
+    "shortDescription": "오픈소스 HWP/HWPX 데스크톱 앱",
+    "longDescription": "YHWP는 한컴오피스 없이도 HWP/HWPX 문서를 열고 편집하고 PDF로 내보낼 수 있는 오픈소스 데스크톱 앱입니다. macOS, Windows, Linux 지원.",
     "category": "Productivity",
-    "copyright": "Copyright (c) 2026 HOP contributors",
+    "copyright": "Copyright (c) 2026 영삼넷 (youngsam.net)",
     "icon": [
       "../../../assets/logo/logo-32.png",
       "../../../assets/logo/logo-128.png",
@@ -61,9 +61,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZGQzA1Qzc3QkQ0ODhFM0YKUldRL2praTlkMXpBL3pTcUFUczdzWFBFSjV3QnBPczhJTy8zMG5OcVhYNi9sbDJtRS9JY2wxN00K",
+      "active": false,
       "endpoints": [
-        "https://github.com/golbin/hop/releases/latest/download/latest.json"
+        "https://github.com/openr03/YHWP/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"
