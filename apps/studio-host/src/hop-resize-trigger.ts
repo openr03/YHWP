@@ -1,48 +1,76 @@
 /**
- * 창 크기 변경 시 강제 reflow 트리거
+ * 창 크기 변경 시 페이지 위치 강제 재계산
  *
- * 업스트림 viewport-manager 는 ResizeObserver 로 #scroll-container 의
- * 크기 변화를 감지해 'viewport-resize' 이벤트를 발사하고, canvas-view 가
- * 그 이벤트로 페이지 위치 (`canvas.style.left = '50%'`) 를 재계산한다.
+ * 업스트림 흐름:
+ *   ResizeObserver(#scroll-container) → eventBus.emit('viewport-resize')
+ *   → canvas-view.onViewportResize → repositionActivePages
+ *   → applyCanvasDisplayLayout (canvas.style.left = ${pixel}px)
  *
- * 그러나 Tauri 데스크톱 환경에서 윈도우 크기를 빠르게 바꾸면 ResizeObserver
- * 콜백이 늦게/한 번만 발사되어 페이지가 우측으로 쏠리는 증상이 보고됨.
+ * 문제: Tauri 환경에서 윈도우를 빠르게 리사이즈하거나 max/restore 버튼을
+ * 따닥 클릭하면 ResizeObserver 콜백이 누락/지연되어 페이지 위치 재계산이
+ * 안 일어남 → 페이지가 한쪽으로 쏠림.
  *
- * 이 모듈은 window resize 이벤트가 발생하면 약간의 throttle 후
- * #scroll-container 에 inline style 로 빈 값 setProperty 를 한 번 더
- * 트리거해서 ResizeObserver 가 한 번 더 콜백을 호출하도록 유도한다.
+ * 해결: window resize 이벤트마다 직접 eventBus.emit('viewport-resize') 를
+ * 호출해서 canvas-view 가 강제 재계산하도록 한다. window resize 는
+ * Tauri 가 안정적으로 발사한다.
  *
- * 업스트림 코드를 건드리지 않고 외부에서 보강하는 방식.
+ * 안전장치:
+ *   - rAF 1회로 throttle (resize 이벤트는 초당 수십~수백 번 발사 가능)
+ *   - resize 종료 후 한 번 더 (debounced trailing call)
  */
 
-let scheduled = false;
+interface MinimalEventBus {
+  emit?: (event: string, ...args: unknown[]) => void;
+}
 
-function bumpScrollContainer(): void {
-  if (scheduled) return;
+let scheduled = false;
+let trailingTimer: ReturnType<typeof setTimeout> | null = null;
+
+function getBus(): MinimalEventBus | null {
+  return (window as unknown as { __hopEventBus?: MinimalEventBus })
+    .__hopEventBus ?? null;
+}
+
+function emitViewportResize(): void {
+  const bus = getBus();
+  const c = document.getElementById('scroll-container');
+  if (!c || !bus?.emit) return;
+  // canvas-view 가 onViewportResize() 안에서 width/height 를 다시 측정하므로
+  // 인자는 hint 용. 0,0 으로 줘도 내부에서 clientWidth/Height 다시 읽음.
+  bus.emit('viewport-resize', c.clientWidth, c.clientHeight);
+}
+
+function bump(): void {
+  if (scheduled) {
+    // 이미 frame 예약돼 있더라도 trailing 한 번 더 잡음
+    queueTrailing();
+    return;
+  }
   scheduled = true;
   requestAnimationFrame(() => {
     scheduled = false;
-    const c = document.getElementById('scroll-container');
-    if (!c) return;
-    // 무해한 read+write 로 layout/reflow 강제
-    // (clientWidth 읽기 + 임시 inline 변수 쓰기)
-    void c.clientWidth;
-    c.style.setProperty('--hop-resize-tick', Date.now().toString());
+    emitViewportResize();
+    queueTrailing();
   });
+}
+
+function queueTrailing(): void {
+  if (trailingTimer !== null) clearTimeout(trailingTimer);
+  trailingTimer = setTimeout(() => {
+    trailingTimer = null;
+    emitViewportResize();
+  }, 120);
 }
 
 export function initHopResizeTrigger(): void {
   if (typeof window === 'undefined') return;
 
-  // window resize → reflow 트리거
-  window.addEventListener('resize', bumpScrollContainer, { passive: true });
+  window.addEventListener('resize', bump, { passive: true });
 
-  // Tauri webview 가 처음 그려진 직후 한 번 더 트리거
+  // 첫 paint 후 한 번
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bumpScrollContainer, {
-      once: true,
-    });
+    document.addEventListener('DOMContentLoaded', bump, { once: true });
   } else {
-    bumpScrollContainer();
+    bump();
   }
 }
