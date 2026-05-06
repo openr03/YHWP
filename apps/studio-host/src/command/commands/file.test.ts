@@ -7,10 +7,19 @@ const openPrintDialog = vi.hoisted(() => vi.fn());
 
 vi.mock('@upstream/command/commands/file', () => ({
   fileCommands: [
+    { id: 'file:new-doc', label: 'New', execute: vi.fn() },
     { id: 'file:open', label: 'Open', execute: upstreamOpen },
     { id: 'file:save', label: 'Save', execute: upstreamSave },
     { id: 'file:print', label: 'Print', execute: vi.fn() },
   ],
+}));
+
+vi.mock('@upstream/ui/confirm-dialog', () => ({
+  showConfirm: vi.fn(),
+}));
+
+vi.mock('@/ui/new-doc-dialog', () => ({
+  NewDocDialog: vi.fn(),
 }));
 
 vi.mock('@/ui/print-dialog', () => ({

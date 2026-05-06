@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "updatedAt": "2026-05-06",
+  "categories": [
+    {
+      "id": "basic",
+      "label": "기본",
+      "templates": [
+        {
+          "id": "blank",
+          "name": "빈 문서",
+          "desc": "비어있는 새 문서를 만듭니다.",
+          "icon": "📄",
+          "file": null
+        }
+      ]
+    },
+    {
+      "id": "work",
+      "label": "업무",
+      "templates": [
+        {
+          "id": "report",
+          "name": "보고서",
+          "desc": "제목 / 작성일 / 작성자 / 본문 형식의 기본 보고서.",
+          "icon": "📋",
+          "file": null,
+          "comingSoon": true
+        },
+        {
+          "id": "meeting-minutes",
+          "name": "회의록",
+          "desc": "참석자 / 안건 / 결정사항 / 다음 회의 형식.",
+          "icon": "📝",
+          "file": null,
+          "comingSoon": true
+        },
+        {
+          "id": "notice",
+          "name": "공지사항",
+          "desc": "단체 · 부서 공지 양식.",
+          "icon": "📢",
+          "file": null,
+          "comingSoon": true
+        }
+      ]
+    },
+    {
+      "id": "school",
+      "label": "학교",
+      "templates": [
+        {
+          "id": "assignment",
+          "name": "과제 표지",
+          "desc": "과목 / 학번 / 이름 / 제출일 표지.",
+          "icon": "🎓",
+          "file": null,
+          "comingSoon": true
+        }
+      ]
+    },
+    {
+      "id": "personal",
+      "label": "개인",
+      "templates": [
+        {
+          "id": "resume",
+          "name": "이력서",
+          "desc": "사진 / 인적사항 / 학력 / 경력 / 자격증.",
+          "icon": "💼",
+          "file": null,
+          "comingSoon": true
+        },
+        {
+          "id": "letter",
+          "name": "편지",
+          "desc": "수신 / 발신 / 제목 / 본문 / 서명.",
+          "icon": "✉️",
+          "file": null,
+          "comingSoon": true
+        }
+      ]
+    }
+  ]
+}
