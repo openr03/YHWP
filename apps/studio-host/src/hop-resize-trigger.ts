@@ -24,7 +24,19 @@ interface MinimalEventBus {
 }
 
 let scheduled = false;
-let trailingTimer: ReturnType<typeof setTimeout> | null = null;
+const trailingTimers = new Set<ReturnType<typeof setTimeout>>();
+
+/**
+ * Tauri/Windows 에서 max → restore 버튼 클릭 시 layout 이 여러 frame 에
+ * 걸쳐 settle 하므로, 단일 trailing(120ms) 한 번으로는 stale 위치를 못
+ * 따라잡는 케이스가 있다. 드래그 리사이즈는 자연히 resize 이벤트가 수십
+ * 번 발사되어 settle 하지만, 버튼 클릭은 1~2 회만 발사 후 끝남.
+ *
+ * 해결: 매 resize 마다 다중 시점(0/100/300/600/1000ms)에 강제 재계산을
+ * 예약. 이미 같은 시점 타이머가 있어도 cancel 하지 않고 누적 → 빠른
+ * 연속 resize 에도 마지막 settle 시점이 잡히도록 함.
+ */
+const TRAILING_DELAYS_MS = [100, 300, 600, 1000] as const;
 
 function getBus(): MinimalEventBus | null {
   return (window as unknown as { __hopEventBus?: MinimalEventBus })
@@ -41,31 +53,36 @@ function emitViewportResize(): void {
 }
 
 function bump(): void {
-  if (scheduled) {
-    // 이미 frame 예약돼 있더라도 trailing 한 번 더 잡음
-    queueTrailing();
-    return;
+  if (!scheduled) {
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      emitViewportResize();
+    });
   }
-  scheduled = true;
-  requestAnimationFrame(() => {
-    scheduled = false;
-    emitViewportResize();
-    queueTrailing();
-  });
+  queueTrailings();
 }
 
-function queueTrailing(): void {
-  if (trailingTimer !== null) clearTimeout(trailingTimer);
-  trailingTimer = setTimeout(() => {
-    trailingTimer = null;
-    emitViewportResize();
-  }, 120);
+function queueTrailings(): void {
+  for (const ms of TRAILING_DELAYS_MS) {
+    const t = setTimeout(() => {
+      trailingTimers.delete(t);
+      emitViewportResize();
+    }, ms);
+    trailingTimers.add(t);
+  }
 }
 
 export function initHopResizeTrigger(): void {
   if (typeof window === 'undefined') return;
 
   window.addEventListener('resize', bump, { passive: true });
+
+  // Tauri 윈도우 max/restore 는 이따금 resize 이벤트 자체가 한 발도 안
+  // 발사되는 케이스 보고가 있어서, 표준 maximize/restore 키보드 단축키와
+  // 마우스 더블클릭(타이틀바)도 함께 hook 한다. 안전망 — 비용 거의 없음.
+  window.addEventListener('focus', bump, { passive: true });
+  document.addEventListener('visibilitychange', bump);
 
   // 첫 paint 후 한 번
   if (document.readyState === 'loading') {
