@@ -51,17 +51,45 @@ interface InfoCard {
   links: InfoLink[];
 }
 
-const YHWP_CARD: InfoCard = {
-  emoji: '🌐',
-  title: '영삼넷',
-  subtitle: 'youngsam.net',
-  description:
-    'YHWP 제작 · 운영 · hwp.youngsam.net 다운로드 사이트 운영.',
-  links: [
-    { label: 'hwp.youngsam.net', url: 'https://hwp.youngsam.net' },
-    { label: 'youngsam.net', url: 'https://youngsam.net' },
-  ],
-};
+const BRAND_CARDS: InfoCard[] = [
+  {
+    emoji: '🌐',
+    title: '영삼넷',
+    subtitle: 'youngsam.net',
+    description: 'YHWP 제작 · 운영 · 배포.',
+    links: [
+      { label: 'hwp.youngsam.net', url: 'https://hwp.youngsam.net' },
+      { label: 'youngsam.net', url: 'https://youngsam.net' },
+    ],
+  },
+  {
+    emoji: '⭐',
+    title: 'GitHub',
+    subtitle: 'openr03/YHWP',
+    description: '소스 코드 · 릴리즈 노트 · 기여 가이드.',
+    links: [
+      { label: '저장소', url: 'https://github.com/openr03/YHWP' },
+      { label: '릴리즈', url: 'https://github.com/openr03/YHWP/releases' },
+    ],
+  },
+  {
+    emoji: '🐞',
+    title: '피드백 · 버그 리포트',
+    subtitle: '의견을 보내주세요',
+    description:
+      '오류 / 기능 제안 / 사용자 경험 문의. 한 줄짜리 글도 환영.',
+    links: [
+      {
+        label: '새 이슈 작성',
+        url: 'https://github.com/openr03/YHWP/issues/new',
+      },
+      {
+        label: '이슈 목록',
+        url: 'https://github.com/openr03/YHWP/issues',
+      },
+    ],
+  },
+];
 
 function buildBrand(): HTMLElement {
   const wrap = document.createElement('div');
@@ -143,10 +171,12 @@ export class AboutDialog extends UpstreamAboutDialog {
     // 5) 기술 스택 ("Rust + WebAssembly + TypeScript") — 그대로 두되 숨길 수도 있음
     //    (지금은 그대로 표시)
 
-    // 6) 영삼넷 카드 1개만 (HOP / rhwp 카드 제거)
+    // 6) 브랜드 카드들 (영삼넷 / GitHub / 피드백)
     const cardsWrap = document.createElement('div');
     cardsWrap.className = 'about-info-cards';
-    cardsWrap.appendChild(buildCard(YHWP_CARD));
+    for (const card of BRAND_CARDS) {
+      cardsWrap.appendChild(buildCard(card));
+    }
 
     if (tech?.parentNode) {
       tech.parentNode.insertBefore(cardsWrap, tech.nextSibling);

@@ -12,6 +12,7 @@
 
 import { insertCommands as upstreamInsertCommands } from '@upstream/command/commands/insert';
 import type { CommandDef, CommandServices } from '@/command/types';
+import { HyperlinkDialog } from '@/ui/hyperlink-dialog';
 
 const HYPERLINK: CommandDef = {
   id: 'insert:hyperlink',
@@ -19,19 +20,25 @@ const HYPERLINK: CommandDef = {
   icon: 'icon-hyperlink',
   shortcutLabel: 'Ctrl+K+H',
   canExecute: (ctx) => ctx.hasDocument,
-  execute(services: CommandServices) {
-    const url = window.prompt(
-      '하이퍼링크 URL 을 입력해 주세요\n(현재 버전은 URL 텍스트만 본문에 삽입됩니다 — 진짜 HWP hyperlink metadata 삽입은 rhwp 엔진 지원 시 활성화)',
-      'https://',
-    );
-    if (!url || !url.trim()) return;
-    const inserted = url.trim();
-
+  async execute(services: CommandServices) {
     const ih = services.getInputHandler();
     if (!ih) {
       alert('편집 가능한 문서가 없습니다.');
       return;
     }
+
+    // 선택 영역이 있으면 그 텍스트를 기본 표시 텍스트로 사용
+    const selection = ih.getSelection?.();
+    let initialText = '';
+    if (selection) {
+      try {
+        initialText = (services.wasm as any).getSelectedText?.() ?? '';
+      } catch { /* 무시 */ }
+    }
+
+    const dialog = new HyperlinkDialog();
+    const result = await dialog.show({ url: 'https://', text: initialText });
+    if (!result) return;
 
     const cursor = (ih as unknown as { cursor?: any }).cursor;
     if (!cursor || typeof cursor.getPosition !== 'function') {
@@ -40,6 +47,12 @@ const HYPERLINK: CommandDef = {
     }
     const pos = cursor.getPosition();
     if (!pos) return;
+
+    // 본문에 삽입할 텍스트: "표시 텍스트 (URL)" 또는 "URL"
+    const inserted =
+      result.text && result.text !== result.url
+        ? `${result.text} (${result.url})`
+        : result.url;
 
     try {
       services.wasm.insertText(
