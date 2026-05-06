@@ -54,6 +54,27 @@ function reportCommandError(services: CommandServices, action: string, error: un
 }
 
 const desktopCommands = new Map<string, CommandDef>([
+  ['file:save', {
+    ...upstream('file:save'),
+    // HWPX 출처 차단 해제 — bridge.saveHwpxThroughStaging 안의 동의 다이얼로그로
+    // 안전성 보장. 메뉴는 항상 활성화되어 사용자가 Ctrl+S 가 회색이라 좌절하지 않음.
+    canExecute: (ctx) => ctx.hasDocument,
+    async execute(services) {
+      const desktop = desktopBridge(services.wasm);
+      if (!desktop) return upstream('file:save').execute(services);
+
+      try {
+        emitStatus(services, '저장 중...');
+        const result = await desktop.saveDocumentFromCommand();
+        if (result) {
+          services.eventBus.emit('desktop-document-saved', result);
+          emitStatus(services, '저장 완료');
+        }
+      } catch (error) {
+        reportCommandError(services, '저장', error);
+      }
+    },
+  }],
   ['file:new-doc', withDesktopOverride('file:new-doc', async (services) => {
     const ctx = services.getContext();
     if (ctx.hasDocument) {
@@ -95,21 +116,6 @@ const desktopCommands = new Map<string, CommandDef>([
 
     const payload = await desktop.openDocumentFromDialog();
     if (payload) services.eventBus.emit('desktop-document-loaded', payload);
-  })],
-  ['file:save', withDesktopOverride('file:save', async (services) => {
-    const desktop = desktopBridge(services.wasm);
-    if (!desktop) return upstream('file:save').execute(services);
-
-    try {
-      emitStatus(services, '저장 중...');
-      const result = await desktop.saveDocumentFromCommand();
-      if (result) {
-        services.eventBus.emit('desktop-document-saved', result);
-        emitStatus(services, '저장 완료');
-      }
-    } catch (error) {
-      reportCommandError(services, '저장', error);
-    }
   })],
   ['file:print', withDesktopOverride('file:print', async (services) => {
     const statusEl = document.getElementById('sb-message');

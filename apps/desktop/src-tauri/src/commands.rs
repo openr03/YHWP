@@ -94,6 +94,39 @@ pub fn prepare_staged_hwp_save(app: AppHandle, target_path: String) -> Result<St
 }
 
 #[tauri::command]
+pub fn prepare_staged_hwpx_save(app: AppHandle, target_path: String) -> Result<String, String> {
+    prepare_staged_file(
+        &app,
+        PathBuf::from(target_path),
+        ensure_hwpx_target_path,
+        staged_hwpx_save_path,
+    )
+}
+
+#[tauri::command]
+pub fn commit_staged_hwpx_save(
+    doc_id: String,
+    staged_path: String,
+    target_path: String,
+    expected_revision: Option<u64>,
+    allow_external_overwrite: Option<bool>,
+    state: State<'_, AppState>,
+) -> Result<SaveResult, String> {
+    let target_path = PathBuf::from(target_path);
+    state
+        .sessions
+        .lock()
+        .map_err(|_| "문서 세션 잠금 실패".to_string())?
+        .commit_staged_hwpx_save(
+            &doc_id,
+            PathBuf::from(staged_path),
+            target_path,
+            expected_revision,
+            allow_external_overwrite.unwrap_or(false),
+        )
+}
+
+#[tauri::command]
 pub fn prepare_staged_hwp_pdf_export(
     app: AppHandle,
     target_path: String,
@@ -345,8 +378,23 @@ fn ensure_hwp_target_path(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn ensure_hwpx_target_path(path: &Path) -> Result<(), String> {
+    ensure_target_parent(path, "저장 경로")?;
+    let format = DocumentFormat::from_path(path)?;
+    if format != DocumentFormat::Hwpx {
+        return Err(
+            "HWP 경로에는 HWPX 바이트를 저장할 수 없습니다. .hwpx 파일로 저장하세요.".to_string(),
+        );
+    }
+    Ok(())
+}
+
 fn staged_hwp_save_path(target_path: &Path) -> Result<PathBuf, String> {
     staged_sibling_path(target_path, ".hop-save-", ".tmp")
+}
+
+fn staged_hwpx_save_path(target_path: &Path) -> Result<PathBuf, String> {
+    staged_sibling_path(target_path, ".hop-save-hwpx-", ".tmp")
 }
 
 fn ensure_pdf_target_path(path: &Path) -> Result<(), String> {

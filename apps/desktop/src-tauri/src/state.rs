@@ -220,6 +220,46 @@ impl DocumentSessionManager {
         Ok(session.save_result())
     }
 
+    pub fn commit_staged_hwpx_save(
+        &mut self,
+        doc_id: &str,
+        staged_path: PathBuf,
+        target_path: PathBuf,
+        expected_revision: Option<u64>,
+        allow_external_overwrite: bool,
+    ) -> Result<SaveResult, String> {
+        let session = self.session_mut(doc_id)?;
+        session.check_revision(expected_revision)?;
+        if !allow_external_overwrite {
+            session.check_external_modification_for_path(&target_path)?;
+        }
+        let format = DocumentFormat::from_path(&target_path)?;
+        if format != DocumentFormat::Hwpx {
+            return Err(
+                "HWP 경로에는 HWPX 바이트를 저장할 수 없습니다. .hwpx 파일로 저장하세요."
+                    .to_string(),
+            );
+        }
+        let bytes = std::fs::read(&staged_path).map_err(|e| {
+            format!(
+                "staging 파일을 읽을 수 없습니다: {} ({})",
+                staged_path.display(),
+                e
+            )
+        })?;
+        // HWPX 라이터는 베타 — 검증 실패해도 사용자가 의식적으로 저장 시도한 것이므로
+        // editable_core 재로드는 best-effort 로 처리 (실패해도 파일 저장은 진행).
+        let core = editable_core_from_bytes(
+            &bytes,
+            "HWPX 저장 바이트 검증 실패",
+            "HWPX 저장 문서 변환 실패",
+        )
+        .ok();
+        session.finish_hwpx_save(target_path, &bytes, core)?;
+        let _ = std::fs::remove_file(&staged_path);
+        Ok(session.save_result())
+    }
+
     pub fn external_modification_status(
         &self,
         doc_id: &str,
@@ -577,6 +617,26 @@ impl DocumentSession {
         }
         self.source_path = Some(target_path);
         self.source_format = DocumentFormat::Hwp;
+        self.refresh_source_fingerprint_from_bytes(bytes)?;
+        self.revision += 1;
+        self.dirty = false;
+        self.page_svg_cache.clear();
+        Ok(())
+    }
+
+    fn finish_hwpx_save(
+        &mut self,
+        target_path: PathBuf,
+        bytes: &[u8],
+        core_override: Option<DocumentCore>,
+    ) -> Result<(), String> {
+        atomic_write(&target_path, bytes)?;
+        if let Some(core) = core_override {
+            self.page_count = core.page_count();
+            self.core = Some(core);
+        }
+        self.source_path = Some(target_path);
+        self.source_format = DocumentFormat::Hwpx;
         self.refresh_source_fingerprint_from_bytes(bytes)?;
         self.revision += 1;
         self.dirty = false;

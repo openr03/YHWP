@@ -18,6 +18,7 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
   open: openMock,
   save: saveMock,
   message: messageMock,
+  ask: vi.fn(async () => true),
 }));
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
@@ -35,6 +36,7 @@ vi.mock('@/core/wasm-bridge', () => ({
     }));
     createNewDocumentMock = vi.fn(() => ({ pageCount: 1, fontsUsed: [] }));
     exportHwpMock = vi.fn(() => new Uint8Array([1, 2, 3]));
+    exportHwpxMock = vi.fn(() => new Uint8Array([10, 20, 30]));
 
     loadDocument(bytes: Uint8Array, fileName: string) {
       return this.loadDocumentMock(bytes, fileName);
@@ -46,6 +48,10 @@ vi.mock('@/core/wasm-bridge', () => ({
 
     exportHwp() {
       return this.exportHwpMock();
+    }
+
+    exportHwpx() {
+      return this.exportHwpxMock();
     }
   },
 }));
@@ -254,8 +260,10 @@ describe('TauriBridge', () => {
     expect(invokeMock).toHaveBeenNthCalledWith(4, 'cancel_app_quit', {});
   });
 
-  it('blocks direct save for HWPX sources', async () => {
+  it('routes HWPX sources through the dedicated hwpx staging pipeline', async () => {
     const bridge = new TauriBridge();
+    const handle = writeHandle();
+    fsOpenMock.mockResolvedValue(handle);
     applyOpenResult(bridge, {
       docId: 'doc-1',
       fileName: 'source.hwpx',
@@ -267,7 +275,26 @@ describe('TauriBridge', () => {
       warnings: [],
     });
 
-    await expect(bridge.saveDocumentFromCommand()).rejects.toThrow('HWPX 원본 저장은 아직 안전하게 지원하지 않습니다');
+    invokeMock.mockImplementation(async (cmd: string) => {
+      if (cmd === 'check_external_modification') return { changed: false };
+      if (cmd === 'prepare_staged_hwpx_save') return '/tmp/source.hwpx.hop-save-hwpx-xxx.tmp';
+      if (cmd === 'commit_staged_hwpx_save') {
+        return {
+          docId: 'doc-1',
+          sourcePath: '/tmp/source.hwpx',
+          format: 'hwpx',
+          revision: 2,
+          dirty: false,
+          warnings: [],
+        };
+      }
+      return null;
+    });
+
+    const result = await bridge.saveDocumentFromCommand();
+    expect(result?.format).toBe('hwpx');
+    expect(invokeMock).toHaveBeenCalledWith('prepare_staged_hwpx_save', expect.any(Object));
+    expect(invokeMock).toHaveBeenCalledWith('commit_staged_hwpx_save', expect.any(Object));
   });
 
   it('saves HWP bytes through native state with extension and revision guards', async () => {

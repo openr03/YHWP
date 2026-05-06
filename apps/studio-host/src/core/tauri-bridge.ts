@@ -159,16 +159,40 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
       return this.saveDocumentAsFromCommand();
     }
     if (this.sourceFormat === 'hwpx') {
-      throw new Error('HWPX 원본 저장은 아직 안전하게 지원하지 않습니다. 다른 이름으로 저장에서 HWP 파일로 저장하세요.');
+      return this.saveHwpxThroughStaging(docId, null);
     }
     return this.saveHwpThroughStaging(docId, null);
   }
 
   async saveDocumentAsFromCommand(): Promise<DesktopSaveResult | null> {
     const docId = this.ensureDocumentLoaded();
-    const targetPath = await this.selectSavePath(this.suggestedHwpName(), 'HWP 문서', ['hwp']);
+    // 사용자가 .hwp 또는 .hwpx 어느 쪽으로든 저장할 수 있도록 두 확장자 모두 제공.
+    // 기본 추천 확장자는 현재 문서의 source 포맷.
+    const isHwpxSource = this.sourceFormat === 'hwpx';
+    const suggested = isHwpxSource
+      ? this.suggestedDocName('hwpx')
+      : this.suggestedDocName('hwp');
+    const targetPath = await this.selectSavePath(
+      suggested,
+      'HWP / HWPX 문서',
+      ['hwp', 'hwpx'],
+    );
     if (!targetPath) return null;
+
+    const lower = targetPath.toLowerCase();
+    if (lower.endsWith('.hwpx')) {
+      return this.saveHwpxThroughStaging(docId, targetPath);
+    }
+    // 사용자가 확장자 안 적었으면 source 포맷 따라감
+    if (!lower.endsWith('.hwp') && isHwpxSource) {
+      return this.saveHwpxThroughStaging(docId, this.withExtension(targetPath, 'hwpx'));
+    }
     return this.saveHwpThroughStaging(docId, this.withExtension(targetPath, 'hwp'));
+  }
+
+  private suggestedDocName(ext: 'hwp' | 'hwpx'): string {
+    const base = this.fileName.replace(/\.(hwp|hwpx)$/i, '') || 'document';
+    return `${base}.${ext}`;
   }
 
   async exportPdfFromCommand(): Promise<string | null> {
@@ -313,6 +337,37 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
     }
   }
 
+  private async saveHwpxThroughStaging(
+    docId: string,
+    targetPath: string | null,
+  ): Promise<DesktopSaveResult | null> {
+    const finalPath = targetPath ?? this.sourcePath;
+    if (!finalPath) throw new Error('새 문서는 저장 경로가 필요합니다');
+
+    // HWPX 저장은 베타 — 첫 시도에 동의 받기 (localStorage 에 표식 저장).
+    const consented = await this.ensureHwpxConsent();
+    if (!consented) return null;
+
+    const allowExternalOverwrite = await this.confirmExternalOverwriteIfNeeded(docId, finalPath);
+    if (allowExternalOverwrite === null) return null;
+
+    const stagedPath = await this.invoke<string>('prepare_staged_hwpx_save', { targetPath: finalPath });
+    try {
+      await this.writeCurrentHwpxToPath(stagedPath);
+      const result = await this.invoke<DesktopSaveResult>('commit_staged_hwpx_save', {
+        docId,
+        stagedPath,
+        targetPath: finalPath,
+        expectedRevision: this.revision,
+        allowExternalOverwrite,
+      });
+      this.applyNativeSaveResult(result);
+      return result;
+    } finally {
+      await remove(stagedPath).catch(() => undefined);
+    }
+  }
+
   private async confirmExternalOverwriteIfNeeded(
     docId: string,
     targetPath: string | null,
@@ -366,9 +421,6 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
   }
 
   private async saveCurrentDocumentForSafety(): Promise<DesktopSaveResult | null> {
-    if (this.sourceFormat === 'hwpx') {
-      return this.saveDocumentAsFromCommand();
-    }
     return this.saveDocumentFromCommand();
   }
 
@@ -405,6 +457,47 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
 
   private async writeCurrentHwpToPath(path: string): Promise<void> {
     await writeFileInChunks(path, super.exportHwp());
+  }
+
+  private async writeCurrentHwpxToPath(path: string): Promise<void> {
+    await writeFileInChunks(path, super.exportHwpx());
+  }
+
+  /**
+   * HWPX 저장 베타 안내 — 처음 한 번만 노출, 이후 localStorage 표식으로 skip.
+   * 이 다이얼로그는 file:save / file:save-as 양쪽 진입로에서 일관되게 적용된다.
+   */
+  private async ensureHwpxConsent(): Promise<boolean> {
+    const KEY = 'yhwp:hwpx-save-consented-v1';
+    try {
+      if (localStorage.getItem(KEY) === '1') return true;
+    } catch { /* private mode 등 — 매번 묻기 */ }
+
+    const { ask } = await import('@tauri-apps/plugin-dialog');
+    const ok = await ask(
+      [
+        'HWPX 저장은 현재 베타 단계입니다.',
+        '',
+        '단순 텍스트 위주 문서는 한컴오피스에서 정상적으로 다시 열립니다.',
+        '복잡한 표 / 이미지 / 차트 / 매크로가 들어간 문서는 일부 서식이',
+        '손실될 수 있습니다.',
+        '',
+        '안전을 위해서는 .hwp 형식으로 저장하시는 것을 권장합니다.',
+        '',
+        '계속 진행하시겠습니까? (한 번 진행하면 다시 묻지 않습니다)',
+      ].join('\n'),
+      {
+        title: 'HWPX 저장 — 베타 안내',
+        kind: 'warning',
+        okLabel: '계속 진행',
+        cancelLabel: '취소',
+      },
+    );
+
+    if (ok) {
+      try { localStorage.setItem(KEY, '1'); } catch { /* 무시 */ }
+    }
+    return ok;
   }
 
   private withExtension(path: string, extension: string): string {
@@ -474,11 +567,6 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
       this.fileName = this.sourcePath.split(/[\\/]/).pop() || this.fileName;
     }
     this.updateDocumentTitle();
-  }
-
-  private suggestedHwpName(): string {
-    const name = this.fileName.replace(/\.(hwp|hwpx)$/i, '') || 'document';
-    return `${name}.hwp`;
   }
 
   private suggestedPdfName(): string {
