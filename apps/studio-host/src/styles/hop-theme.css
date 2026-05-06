@@ -437,18 +437,16 @@
   transform: translateX(-50%) !important;
 }
 
+/* min-width:0 만으로 충분 — flex/grid item 이 자손 min-content 와 디커플링.
+   overflow-x:auto 는 거는 순간 CSS 스펙상 overflow-y 도 비-visible 이 되어
+   메뉴/툴바의 absolute 자식(드롭다운) 이 클리핑됨 → 메뉴 클릭 무반응 사고.
+   따라서 overflow 는 건드리지 않고 min-width:0 만 일괄 적용. */
 #editor-area,
 #editor-area > #scroll-container,
-#scroll-content {
-  min-width: 0;
-}
-
-/* 도구상자가 윈도우보다 넓을 땐 가로 스크롤로 넘기고, 부모 폭은 침범하지
-   못하게 함. 부모는 min-width:0 이라 같이 줄어들 수 있어 안전. */
+#scroll-content,
 #icon-toolbar,
 #style-bar,
 #menu-bar {
   min-width: 0;
-  overflow-x: auto;
 }
 
