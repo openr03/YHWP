@@ -2,6 +2,7 @@ import { initHopTheme } from './hop-theme';
 import { initRecentDocs } from './ui/recent-docs';
 import { scheduleHopWindowShow } from './hop-window-show';
 import { initHopResizeTrigger } from './hop-resize-trigger';
+import { initHopWebWelcome } from './hop-web-welcome';
 import { createBridge, isTauriRuntime } from '@/core/bridge-factory';
 
 initHopTheme();
@@ -48,6 +49,7 @@ const wasm = createBridge();
 const eventBus = new EventBus();
 let desktopPlatform = detectDesktopPlatform();
 
+initHopWebWelcome(eventBus);
 initRecentDocs({ bridge: wasm, eventBus });
 
 type DirtyAwareBridge = {

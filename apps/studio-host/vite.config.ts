@@ -60,7 +60,7 @@ function decodePath(path: string): string {
 }
 
 export default defineConfig({
-  base: './',
+  base: process.env.HOP_WEB_BASE || './',
   plugins: [hopFontAssets()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
