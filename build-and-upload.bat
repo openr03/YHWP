@@ -9,8 +9,14 @@ REM
 REM 실행: 더블클릭
 REM ───────────────────────────────────────────────────────────
 
+chcp 65001 >nul 2>&1
+
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
+
+for /f "tokens=*" %%i in ('cd') do set CURDIR_FWD=%%i
+set CURDIR_FWD=!CURDIR_FWD:\=/!
+git config --global --add safe.directory "!CURDIR_FWD!" >nul 2>&1
 
 echo.
 echo ============================================================
@@ -28,8 +34,10 @@ if errorlevel 1 (
 )
 
 REM ── 빌드 단계 (build-windows.bat 의 1~4 단계 그대로) ──
-echo [1/5] git pull
+echo [1/5] git pull + submodule
 call git pull
+if errorlevel 1 goto :fail
+call git submodule update --init --recursive
 if errorlevel 1 goto :fail
 
 echo.

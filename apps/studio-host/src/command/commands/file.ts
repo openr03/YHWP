@@ -137,7 +137,7 @@ const hopOnlyCommands: CommandDef[] = [
     async execute(services) {
       const desktop = desktopBridge(services.wasm);
       if (!desktop) {
-        alert('PDF 내보내기는 HOP 데스크톱 앱에서 지원합니다.');
+        alert('PDF 내보내기는 데스크톱 앱에서 지원합니다.');
         return;
       }
 

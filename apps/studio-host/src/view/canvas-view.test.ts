@@ -206,23 +206,30 @@ function createMockNode(id?: string): MockNode {
 }
 
 function createMockCanvas(): HTMLCanvasElement {
-  return {
+  const style = {
+    removeProperty(this: Record<string, unknown>, key: string) {
+      delete this[key];
+    },
+  } as unknown as CSSStyleDeclaration;
+  const canvas = {
     width: 0,
     height: 0,
-    style: {},
-    parentElement: null,
+    style,
+    parentElement: null as MockNode | null,
     remove() {
-      const parent = this.parentElement as unknown as MockNode | null;
-      parent?.removeChild(this as unknown as MockNode);
+      canvas.parentElement?.removeChild(canvas as unknown as MockNode);
     },
-  } as HTMLCanvasElement;
+  };
+  return canvas as unknown as HTMLCanvasElement;
 }
 
 describe('applyCanvasDisplayLayout', () => {
-  it('centers and sizes an already-rendered canvas in single-column mode', () => {
+  it('clears inline left/transform in single-column mode so CSS centers the canvas', () => {
     const canvas = createMockCanvas();
     canvas.width = 2000;
     canvas.height = 2800;
+    canvas.style.left = '999px';
+    canvas.style.transform = 'none';
 
     const layout = {
       getPageOffset: () => 10,
@@ -233,9 +240,26 @@ describe('applyCanvasDisplayLayout', () => {
     applyCanvasDisplayLayout(canvas, layout, 0, 1200, 2);
 
     expect(canvas.style.top).toBe('10px');
-    expect(canvas.style.left).toBe('100px');
+    expect(canvas.style.left).toBeFalsy();
+    expect(canvas.style.transform).toBeFalsy();
     expect(canvas.style.width).toBe('1000px');
     expect(canvas.style.height).toBe('1400px');
+  });
+
+  it('uses pixel coordinates in grid mode', () => {
+    const canvas = createMockCanvas();
+    canvas.width = 2000;
+    canvas.height = 2800;
+
+    const layout = {
+      getPageOffset: () => 10,
+      getPageLeft: () => 200,
+      getPageWidth: () => 1000,
+    };
+
+    applyCanvasDisplayLayout(canvas, layout, 0, 2400, 2);
+
+    expect(canvas.style.left).toBe('200px');
     expect(canvas.style.transform).toBe('none');
   });
 });
@@ -301,7 +325,7 @@ describe('CanvasView viewport resize behavior', () => {
 
     const canvas = scrollContent.querySelector('canvas');
     expect(canvas).not.toBeNull();
-    expect(canvas?.style.left).toBe('21px');
+    expect(canvas?.style.left).toBeFalsy();
     expect(renderPageMock).toHaveBeenCalledTimes(1);
 
     viewportState.width = 1200;
@@ -309,7 +333,8 @@ describe('CanvasView viewport resize behavior', () => {
     eventBus.emit('viewport-resize', 1200, 900);
 
     expect(scrollContent.querySelector('canvas')).toBe(canvas);
-    expect(canvas?.style.left).toBe('100px');
+    expect(canvas?.style.left).toBeFalsy();
+    expect(canvas?.style.transform).toBeFalsy();
     expect(renderPageMock).toHaveBeenCalledTimes(1);
     expect(canvas?.style.width).toBe('1000px');
 

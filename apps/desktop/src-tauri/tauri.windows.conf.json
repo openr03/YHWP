@@ -3,7 +3,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "HOP",
+        "title": "",
         "url": "index.html",
         "width": 1280,
         "height": 900,

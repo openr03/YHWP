@@ -13,6 +13,9 @@ REM   corepack prepare pnpm@10.33.0 --activate
 REM   rustup default stable
 REM ───────────────────────────────────────────────────────────
 
+REM cmd 코드페이지를 UTF-8 로 — 이 파일이 UTF-8 로 저장돼있어서 한글 깨짐 방지
+chcp 65001 >nul 2>&1
+
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
@@ -22,8 +25,16 @@ echo  YHWP Windows 빌드  ^|  %DATE% %TIME:~0,8%
 echo ============================================================
 echo.
 
-echo [1/4] git pull  (최신 코드 받기)
+REM git "dubious ownership" 자동 등록 — 폴더 소유자가 다를 때 git 이 거부하는 문제
+REM 이미 등록돼 있으면 no-op. 빌드폴더 통째로 옮기거나 새로 클론할 때마다 재등록 안 해도 됨.
+for /f "tokens=*" %%i in ('cd') do set CURDIR_FWD=%%i
+set CURDIR_FWD=!CURDIR_FWD:\=/!
+git config --global --add safe.directory "!CURDIR_FWD!" >nul 2>&1
+
+echo [1/4] git pull + submodule  (최신 코드 + third_party/rhwp 동기화)
 call git pull
+if errorlevel 1 goto :gitfail
+call git submodule update --init --recursive
 if errorlevel 1 goto :gitfail
 
 echo.

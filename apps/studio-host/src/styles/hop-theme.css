@@ -418,25 +418,23 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   페이지 우측쏠림 진짜 fix — CSS 센터링 강제 복구
+   페이지 우측쏠림 fix — CSS 단독 센터링 + 컨테이너 폭 정렬
    ═══════════════════════════════════════════════════════════
-   업스트림 editor.css 에는 이미 정상 센터링이 들어있음:
-     #scroll-content canvas {
-       position: absolute;
-       left: 50%;
-       transform: translateX(-50%);
-     }
-   그런데 canvas-view.ts 의 applyCanvasDisplayLayout 이 매 resize
-   콜백마다 inline style 로 이를 덮어씀:
-     canvas.style.left = `${pixelValue}px`;
-     canvas.style.transform = 'none';
-   resize 가 빠르게/단발성으로 일어나면 ResizeObserver 콜백이 한 번
-   누락되어 canvas 가 stale pixel 위치에 멈춤. 그래서 페이지가
-   한쪽으로 쏠림.
-   해결: 단일 페이지 모드 (= grid-mode 가 아닌 경우) 에서는 inline
-   style 을 무시하고 CSS 센터링을 강제. !important 로 inline 우선순위
-   거꾸로 뒤집음. grid-mode 일 때는 그대로 JS 위치 사용 (다중 페이지
-   배치라 픽셀 위치가 의미 있음). */
+   HOP-side applyCanvasDisplayLayout 은 단일열 모드에서 left/transform
+   을 inline 으로 건드리지 않는다 (canvas-view.ts). 그래서 업스트림
+   editor.css 의 `#scroll-content canvas { left:50%; transform:translateX(-50%) }`
+   가 단독으로 센터링을 담당.
+   추가 안전장치:
+   - !important 로 혹시 모를 외부 inline 덮어쓰기 차단.
+   - `#scroll-content` 에 min-width:100% 를 걸어서, 스크롤 컨테이너가
+     scroll-content 의 setting width(=maxPageWidth+40) 보다 클 때도
+     scroll-content 가 컨테이너 폭을 가득 채우도록 한다. 이러면 max/
+     restore 사이 `margin:0 auto` 의 비대칭 동작에 의존하지 않고
+     canvas 가 항상 가시 영역 정중앙에 고정된다. */
+#scroll-content {
+  min-width: 100%;
+  box-sizing: border-box;
+}
 #scroll-content:not(.grid-mode) > canvas {
   left: 50% !important;
   transform: translateX(-50%) !important;

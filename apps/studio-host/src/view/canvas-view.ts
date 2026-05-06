@@ -6,8 +6,6 @@ import { CanvasPool } from '@upstream/view/canvas-pool';
 import { PageRenderer } from '@upstream/view/page-renderer';
 import { ViewportManager } from '@upstream/view/viewport-manager';
 import { CoordinateSystem } from '@upstream/view/coordinate-system';
-import { resolveVirtualScrollPageLeft } from './page-left';
-
 type CanvasLayout = {
   getPageOffset(pageIndex: number): number;
   getPageLeft(pageIndex: number): number;
@@ -37,13 +35,20 @@ export function applyCanvasDisplayLayout(
   canvas: HTMLCanvasElement,
   layout: CanvasLayout,
   pageIndex: number,
-  scrollContentWidth: number,
+  _scrollContentWidth: number,
   dpr: number,
 ): void {
   const safeDpr = Number.isFinite(dpr) && dpr > 0 ? dpr : 1;
   canvas.style.top = `${layout.getPageOffset(pageIndex)}px`;
-  canvas.style.left = `${resolveVirtualScrollPageLeft(layout, pageIndex, scrollContentWidth)}px`;
-  canvas.style.transform = 'none';
+
+  const pageLeft = layout.getPageLeft(pageIndex);
+  if (pageLeft >= 0) {
+    canvas.style.left = `${Math.round(pageLeft)}px`;
+    canvas.style.transform = 'none';
+  } else {
+    canvas.style.removeProperty('left');
+    canvas.style.removeProperty('transform');
+  }
 
   const pageDisplayWidth =
     canvas.width > 0 ? canvas.width / safeDpr : layout.getPageWidth(pageIndex);
