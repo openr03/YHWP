@@ -418,23 +418,19 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   페이지 우측쏠림 fix — CSS 단독 센터링 + 컨테이너 폭 정렬
+   페이지 우측쏠림 fix — CSS 단독 센터링
    ═══════════════════════════════════════════════════════════
    HOP-side applyCanvasDisplayLayout 은 단일열 모드에서 left/transform
    을 inline 으로 건드리지 않는다 (canvas-view.ts). 그래서 업스트림
    editor.css 의 `#scroll-content canvas { left:50%; transform:translateX(-50%) }`
    가 단독으로 센터링을 담당.
-   추가 안전장치:
-   - !important 로 혹시 모를 외부 inline 덮어쓰기 차단.
-   - `#scroll-content` 에 min-width:100% 를 걸어서, 스크롤 컨테이너가
-     scroll-content 의 setting width(=maxPageWidth+40) 보다 클 때도
-     scroll-content 가 컨테이너 폭을 가득 채우도록 한다. 이러면 max/
-     restore 사이 `margin:0 auto` 의 비대칭 동작에 의존하지 않고
-     canvas 가 항상 가시 영역 정중앙에 고정된다. */
-#scroll-content {
-  min-width: 100%;
-  box-sizing: border-box;
-}
+   안전장치: !important 로 혹시 모를 외부 inline 덮어쓰기 차단.
+
+   주의: scroll-content 에 `min-width: 100%` 를 걸면 안 됨. CSS Grid 의
+   `1fr` 컬럼 auto 최소값과 circular reference 가 생겨서, 윈도우 한 번
+   커진 후 줄여도 scroll-container 가 stale 한 폭으로 stuck 됨 (최대화
+   상태에서 restore 시 우측쏠림 진짜 원인). 디버그 진단으로 확정 후 제거.
+   margin:0 auto 단독 센터링으로 충분. */
 #scroll-content:not(.grid-mode) > canvas {
   left: 50% !important;
   transform: translateX(-50%) !important;
