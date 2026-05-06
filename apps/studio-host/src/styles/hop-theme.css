@@ -461,3 +461,12 @@
   min-height: 0;
 }
 
+/* CSS Grid 의 `1fr` 은 implicit `minmax(auto, 1fr)` 이라 자식 min-content
+   가 컬럼 minimum 으로 잡혀 stuck 발생. `minmax(0, 1fr)` 로 명시해서
+   자식 사이즈와 무관하게 컬럼/로우가 부모 폭에 자유롭게 따라가게 함.
+   업스트림 editor.css 의 `20px 1fr` 을 덮어씀. */
+#editor-area {
+  grid-template-columns: 20px minmax(0, 1fr) !important;
+  grid-template-rows: 20px minmax(0, 1fr) !important;
+}
+

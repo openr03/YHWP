@@ -31,7 +31,7 @@ function captureLayoutDiagnostics(): string {
   const cts = getComputedStyle(ct);
 
   const ancestors: Record<string, unknown> = {};
-  const ancestorIds = ['editor-area', 'studio-root', 'icon-toolbar', 'style-bar', 'menu-bar'];
+  const ancestorIds = ['editor-area', 'studio-root', 'icon-toolbar', 'style-bar', 'menu-bar', 'h-ruler', 'v-ruler', 'ruler-corner'];
   for (const id of ancestorIds) {
     const el = document.getElementById(id);
     if (!el) {
