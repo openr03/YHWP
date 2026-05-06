@@ -418,21 +418,37 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   페이지 우측쏠림 fix — CSS 단독 센터링
+   페이지 우측쏠림 fix — CSS 단독 센터링 + min-content 전파 차단
    ═══════════════════════════════════════════════════════════
    HOP-side applyCanvasDisplayLayout 은 단일열 모드에서 left/transform
    을 inline 으로 건드리지 않는다 (canvas-view.ts). 그래서 업스트림
    editor.css 의 `#scroll-content canvas { left:50%; transform:translateX(-50%) }`
-   가 단독으로 센터링을 담당.
-   안전장치: !important 로 혹시 모를 외부 inline 덮어쓰기 차단.
+   가 단독으로 센터링을 담당. !important 로 혹시 모를 외부 inline 덮어쓰기 차단.
 
-   주의: scroll-content 에 `min-width: 100%` 를 걸면 안 됨. CSS Grid 의
-   `1fr` 컬럼 auto 최소값과 circular reference 가 생겨서, 윈도우 한 번
-   커진 후 줄여도 scroll-container 가 stale 한 폭으로 stuck 됨 (최대화
-   상태에서 restore 시 우측쏠림 진짜 원인). 디버그 진단으로 확정 후 제거.
-   margin:0 auto 단독 센터링으로 충분. */
+   추가 fix: 도구상자(#icon-toolbar) 의 한 줄로 펼쳐진 버튼들이 만드는
+   큰 min-content (≈2540px) 가 flex/grid 부모를 통해 스크롤 컨테이너까지
+   전파되어, 윈도우를 최대화 후 복원해도 컨테이너가 stale 한 큰 폭으로
+   stuck 되는 케이스를 끊는다. 진단 데이터로 확정:
+     window.innerWidth=1459 vs scroll_container.clientWidth=2540
+   해결: 컨테이너 라인의 모든 flex/grid item 에 min-width:0 — 자손
+   min-content 와 디커플링되어 부모 폭에 맞춰 자유롭게 줄어듦. */
 #scroll-content:not(.grid-mode) > canvas {
   left: 50% !important;
   transform: translateX(-50%) !important;
+}
+
+#editor-area,
+#editor-area > #scroll-container,
+#scroll-content {
+  min-width: 0;
+}
+
+/* 도구상자가 윈도우보다 넓을 땐 가로 스크롤로 넘기고, 부모 폭은 침범하지
+   못하게 함. 부모는 min-width:0 이라 같이 줄어들 수 있어 안전. */
+#icon-toolbar,
+#style-bar,
+#menu-bar {
+  min-width: 0;
+  overflow-x: auto;
 }
 

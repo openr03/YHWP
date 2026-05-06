@@ -30,6 +30,25 @@ function captureLayoutDiagnostics(): string {
   const scs = getComputedStyle(sc);
   const cts = getComputedStyle(ct);
 
+  const ancestors: Record<string, unknown> = {};
+  const ancestorIds = ['editor-area', 'studio-root', 'icon-toolbar', 'style-bar', 'menu-bar'];
+  for (const id of ancestorIds) {
+    const el = document.getElementById(id);
+    if (!el) {
+      ancestors[id] = null;
+      continue;
+    }
+    const ecs = getComputedStyle(el);
+    ancestors[id] = {
+      clientWidth: el.clientWidth,
+      offsetWidth: el.offsetWidth,
+      scrollWidth: el.scrollWidth,
+      cs_min_width: ecs.minWidth,
+      cs_overflow_x: ecs.overflowX,
+      bbox: snapshotRect(el.getBoundingClientRect()),
+    };
+  }
+
   const data = {
     timestamp: new Date().toISOString(),
     title: document.title,
@@ -62,7 +81,19 @@ function captureLayoutDiagnostics(): string {
       scrollTop: ct.scrollTop,
       cs_overflow_x: cts.overflowX,
       cs_overflow_y: cts.overflowY,
+      cs_min_width: cts.minWidth,
       bbox: snapshotRect(ct.getBoundingClientRect()),
+    },
+    ancestors,
+    document_body: {
+      clientWidth: document.body.clientWidth,
+      offsetWidth: document.body.offsetWidth,
+      scrollWidth: document.body.scrollWidth,
+    },
+    document_html: {
+      clientWidth: document.documentElement.clientWidth,
+      offsetWidth: document.documentElement.offsetWidth,
+      scrollWidth: document.documentElement.scrollWidth,
     },
     window: {
       innerWidth: window.innerWidth,
