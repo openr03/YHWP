@@ -440,7 +440,12 @@
 /* min-width:0 만으로 충분 — flex/grid item 이 자손 min-content 와 디커플링.
    overflow-x:auto 는 거는 순간 CSS 스펙상 overflow-y 도 비-visible 이 되어
    메뉴/툴바의 absolute 자식(드롭다운) 이 클리핑됨 → 메뉴 클릭 무반응 사고.
-   따라서 overflow 는 건드리지 않고 min-width:0 만 일괄 적용. */
+   따라서 overflow 는 건드리지 않고 min-width:0 만 일괄 적용.
+
+   #h-ruler / #v-ruler 는 canvas 라서 `width` HTML 어트리뷰트(intrinsic 폭)
+   가 grid 컬럼 auto-minimum 으로 박힘. ruler.ts 가 한 번 최대화된 폭(~2540)
+   으로 canvas.width 박아두면 그 컬럼이 다시 못 줄어드는 stuck 발생.
+   min-width:0 으로 intrinsic 기여를 끊는다. */
 #editor-area,
 #editor-area > #scroll-container,
 #scroll-content,
@@ -448,5 +453,11 @@
 #style-bar,
 #menu-bar {
   min-width: 0;
+}
+
+#h-ruler,
+#v-ruler {
+  min-width: 0;
+  min-height: 0;
 }
 
