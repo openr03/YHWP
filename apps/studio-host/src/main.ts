@@ -3,6 +3,7 @@ import { initRecentDocs } from './ui/recent-docs';
 import { scheduleHopWindowShow } from './hop-window-show';
 import { initHopResizeTrigger } from './hop-resize-trigger';
 import { initHopWebWelcome } from './hop-web-welcome';
+import { initHopHfBanner } from './hop-hf-banner';
 import { createBridge, isTauriRuntime } from '@/core/bridge-factory';
 
 initHopTheme();
@@ -175,6 +176,7 @@ async function initialize(): Promise<void> {
 
     new MenuBar(document.getElementById('menu-bar')!, eventBus, dispatcher);
     installNonEditorContextMenuGuards(document);
+    initHopHfBanner(eventBus, dispatcher);
 
     // 툴바 내 data-cmd 버튼 클릭 → 커맨드 디스패치
     document.querySelectorAll('.tb-btn[data-cmd]').forEach(btn => {
@@ -490,27 +492,12 @@ function setupEventListeners(): void {
     });
   }
 
-  // 머리말/꼬리말 편집 모드 시 도구상자 전환 + 본문 dimming
-  const hfGroup = document.querySelector('.tb-headerfooter-group') as HTMLElement | null;
-  const hfLabel = hfGroup?.querySelector('.tb-hf-label') as HTMLElement | null;
-  const defaultTbGroups = document.querySelectorAll('#icon-toolbar > .tb-group:not(.tb-headerfooter-group):not(.tb-rotate-group), #icon-toolbar > .tb-sep');
+  // 머리말/꼬리말 편집 모드: 도구상자/서식바는 그대로 두고
+  // editor-area 위에 컨텍스트 배너만 표시 (hop-hf-banner.ts).
+  // 본문 dimming 만 유지.
   const scrollContainer = document.getElementById('scroll-container');
-  const styleBar = document.getElementById('style-bar');
-
   eventBus.on('headerFooterModeChanged', (mode) => {
     const isActive = (mode as string) !== 'none';
-    // 도구상자 전환
-    if (hfGroup) {
-      hfGroup.style.display = isActive ? '' : 'none';
-    }
-    if (hfLabel) {
-      hfLabel.textContent = (mode as string) === 'header' ? '머리말' : (mode as string) === 'footer' ? '꼬리말' : '';
-    }
-    defaultTbGroups.forEach((el) => {
-      (el as HTMLElement).style.display = isActive ? 'none' : '';
-    });
-    // 서식 도구 모음은 머리말/꼬리말 편집 시에도 유지 (문단/글자 모양 설정 필요)
-    // 본문 dimming
     if (scrollContainer) {
       if (isActive) {
         scrollContainer.classList.add('hf-editing');
