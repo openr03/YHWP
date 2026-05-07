@@ -374,10 +374,37 @@
   display: none !important;
 }
 
-/* 머리말/꼬리말 편집 모드 전용 도구 그룹 — 컨텍스트 토글이 깨졌을 때
-   사용자에게 영구 노출되는 사고 방지 */
-#icon-toolbar .tb-headerfooter-group {
+/* 머리말/꼬리말 편집 모드 전용 도구 그룹 — 평상시 숨김.
+   is-active 클래스가 붙으면 (main.ts 의 headerFooterModeChanged 이벤트 핸들러)
+   다른 도구상자 그룹 옆에 자연스럽게 inline 노출. accent 컬러로 시각 강조.
+   사용자는 어디 있는지 한눈에 보면서 평소 도구도 그대로 사용 가능. */
+#icon-toolbar .tb-headerfooter-group:not(.is-active) {
   display: none !important;
+}
+#icon-toolbar .tb-headerfooter-group.is-active {
+  background: linear-gradient(
+    180deg,
+    var(--color-accent-bg, rgba(97, 130, 214, 0.16)) 0%,
+    var(--color-accent-bg-light, rgba(97, 130, 214, 0.08)) 100%
+  );
+  border: 1px solid var(--color-primary-light, var(--color-primary, #6182d6));
+  border-radius: 6px;
+  padding: 2px 6px;
+  margin: 0 4px;
+  animation: hop-hf-pulse 1.6s ease-out 0s 2;
+}
+#icon-toolbar .tb-headerfooter-group.is-active .tb-hf-label {
+  color: var(--color-primary-dark, var(--color-primary, #335095));
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: -0.01em;
+}
+#icon-toolbar .tb-headerfooter-group.is-active .tb-hf-delete {
+  color: #c33;
+}
+@keyframes hop-hf-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  30%      { box-shadow: 0 0 0 3px var(--color-accent-bg, rgba(97, 130, 214, 0.32)); }
 }
 
 /* 도형/그림 회전 도구 그룹 — 객체 선택 시에만 노출되어야 함 */

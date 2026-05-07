@@ -3,7 +3,6 @@ import type { CommandDef, CommandServices } from '@/command/types';
 import type { DesktopBridgeApi } from '@/core/tauri-bridge';
 import { openPrintDialog } from '@/ui/print-dialog';
 import { showConfirm } from '@upstream/ui/confirm-dialog';
-import { NewDocDialog } from '@/ui/new-doc-dialog';
 
 type DesktopFileBridge = Pick<
   DesktopBridgeApi,
@@ -85,6 +84,7 @@ const desktopCommands = new Map<string, CommandDef>([
       if (!ok) return;
     }
 
+    const { NewDocDialog } = await import('@/ui/new-doc-dialog');
     const dialog = new NewDocDialog();
     const choice = await dialog.show();
     if (!choice) return;

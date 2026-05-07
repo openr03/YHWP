@@ -12,7 +12,6 @@
 
 import { insertCommands as upstreamInsertCommands } from '@upstream/command/commands/insert';
 import type { CommandDef, CommandServices } from '@/command/types';
-import { HyperlinkDialog } from '@/ui/hyperlink-dialog';
 
 const HYPERLINK: CommandDef = {
   id: 'insert:hyperlink',
@@ -28,35 +27,45 @@ const HYPERLINK: CommandDef = {
         return;
       }
 
-      // 본문이 활성화 안 된 상태(메뉴 클릭으로 들어온 케이스)에서도 다이얼로그
-      // 자체는 표시되도록 cursor/focus 보장 단계 우선
       const ihAny = ih as unknown as {
         isActive?: () => boolean;
         activateWithCaretPosition?: () => void;
         textarea?: HTMLTextAreaElement;
-        cursor?: { getPosition?: () => unknown; moveTo?: (p: unknown) => void };
+        cursor?: {
+          getPosition?: () => unknown;
+          moveTo?: (p: unknown) => void;
+          isInSelection?: () => boolean;
+        };
         updateCaret?: () => void;
+        afterEdit?: () => void;
+        getSelection?: () => { start: unknown; end: unknown } | null;
       };
+
+      // 본문 활성화 안 된 상태(메뉴 클릭으로 진입) 대응
       if (typeof ihAny.isActive === 'function' && !ihAny.isActive()) {
         try { ihAny.activateWithCaretPosition?.(); } catch { /* */ }
       }
 
-      // 선택 영역이 있으면 그 텍스트를 기본 표시 텍스트로 사용
+      // 선택 영역 텍스트가 있다면 기본 표시 텍스트로 미리 채움 (best-effort).
+      // wasm.getSelectedText 가 일부 환경에서 미구현일 수 있어서 try/catch.
       let initialText = '';
       try {
-        const sel = ih.getSelection?.();
-        if (sel) {
-          initialText = (services.wasm as any).getSelectedText?.() ?? '';
+        const wasmAny = services.wasm as unknown as { getSelectedText?: () => string };
+        const sel = ihAny.getSelection?.();
+        if (sel && typeof wasmAny.getSelectedText === 'function') {
+          initialText = wasmAny.getSelectedText() || '';
         }
-      } catch { /* 무시 */ }
+      } catch { /* 무시 — 선택 텍스트 미리 채우기 실패 무관 */ }
 
+      // 다이얼로그 lazy load — 코드 분할로 초기 번들 크기 줄임
+      const { HyperlinkDialog } = await import('@/ui/hyperlink-dialog');
       const dialog = new HyperlinkDialog();
       const result = await dialog.show({ url: 'https://', text: initialText });
       if (!result) return;
 
       const cursor = ihAny.cursor;
       if (!cursor || typeof cursor.getPosition !== 'function' || typeof cursor.moveTo !== 'function') {
-        alert('커서 위치를 알 수 없습니다.');
+        alert('커서 위치를 알 수 없습니다. 본문을 한 번 클릭한 후 다시 시도하세요.');
         return;
       }
       const pos = cursor.getPosition() as
@@ -64,7 +73,9 @@ const HYPERLINK: CommandDef = {
         | null;
       if (!pos) return;
 
-      // 본문에 삽입할 텍스트: "표시 텍스트 (URL)" 또는 "URL"
+      // 본문 삽입 텍스트: 표시 텍스트가 URL 과 다르면 "텍스트 (URL)" 형태,
+      // 아니면 URL 만. (rhwp 코어가 hyperlink record 삽입 API 지원 시 향후
+      // 진짜 메타데이터 삽입으로 교체)
       const inserted =
         result.text && result.text !== result.url
           ? `${result.text} (${result.url})`
@@ -81,6 +92,7 @@ const HYPERLINK: CommandDef = {
         paragraphIndex: pos.paragraphIndex,
         charOffset: pos.charOffset + inserted.length,
       });
+      ihAny.afterEdit?.();
       ihAny.updateCaret?.();
       services.eventBus.emit('document-changed');
     } catch (err) {

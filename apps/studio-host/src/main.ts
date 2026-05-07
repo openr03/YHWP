@@ -3,7 +3,6 @@ import { initRecentDocs } from './ui/recent-docs';
 import { scheduleHopWindowShow } from './hop-window-show';
 import { initHopResizeTrigger } from './hop-resize-trigger';
 import { initHopWebWelcome } from './hop-web-welcome';
-import { initHopHfBanner } from './hop-hf-banner';
 import { createBridge, isTauriRuntime } from '@/core/bridge-factory';
 
 initHopTheme();
@@ -176,7 +175,6 @@ async function initialize(): Promise<void> {
 
     new MenuBar(document.getElementById('menu-bar')!, eventBus, dispatcher);
     installNonEditorContextMenuGuards(document);
-    initHopHfBanner(eventBus, dispatcher);
 
     // 툴바 내 data-cmd 버튼 클릭 → 커맨드 디스패치
     document.querySelectorAll('.tb-btn[data-cmd]').forEach(btn => {
@@ -492,18 +490,25 @@ function setupEventListeners(): void {
     });
   }
 
-  // 머리말/꼬리말 편집 모드: 도구상자/서식바는 그대로 두고
-  // editor-area 위에 컨텍스트 배너만 표시 (hop-hf-banner.ts).
-  // 본문 dimming 만 유지.
+  // 머리말/꼬리말 편집 모드:
+  //   - 다른 도구상자 그룹은 그대로 유지 (사용자가 평소 도구 접근 가능)
+  //   - tb-headerfooter-group 만 추가로 표시 (페이지 번호 등 hf 전용 도구)
+  //   - 본문 영역 dimming 으로 시각적 단서
+  const hfGroup = document.querySelector('.tb-headerfooter-group') as HTMLElement | null;
+  const hfLabel = hfGroup?.querySelector('.tb-hf-label') as HTMLElement | null;
   const scrollContainer = document.getElementById('scroll-container');
   eventBus.on('headerFooterModeChanged', (mode) => {
-    const isActive = (mode as string) !== 'none';
+    const m = mode as string;
+    const isActive = m !== 'none';
+    if (hfGroup) {
+      hfGroup.style.display = isActive ? '' : 'none';
+      hfGroup.classList.toggle('is-active', isActive);
+    }
+    if (hfLabel) {
+      hfLabel.textContent = m === 'header' ? '📄 머리말' : m === 'footer' ? '📑 꼬리말' : '';
+    }
     if (scrollContainer) {
-      if (isActive) {
-        scrollContainer.classList.add('hf-editing');
-      } else {
-        scrollContainer.classList.remove('hf-editing');
-      }
+      scrollContainer.classList.toggle('hf-editing', isActive);
     }
   });
 }
