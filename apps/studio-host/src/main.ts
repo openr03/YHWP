@@ -242,6 +242,13 @@ async function initialize(): Promise<void> {
   } catch (error) {
     msg.textContent = `문서 엔진 초기화 실패: ${error}`;
     console.error('[main] 문서 엔진 초기화 실패:', error);
+  } finally {
+    // 부트 스플래시 fade-out (성공/실패 무관 — 사용자가 UI 에 접근 가능해야 함)
+    document.documentElement.classList.add('hop-boot-ready');
+    setTimeout(() => {
+      const splash = document.getElementById('hop-boot-splash');
+      if (splash) splash.classList.add('hop-boot-removed');
+    }, 260);
   }
 }
 

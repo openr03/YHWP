@@ -34,12 +34,65 @@
     @media (prefers-color-scheme: dark) {
       html[data-theme='auto'] { background: #1a221d; }
     }
+
+    /* ── 부트 스플래시 ───────────────────────────
+       window.show() 직후 ~ wasm.initialize() 끝날 때까지 사용자에게
+       "지금 로딩 중입니다" 시각 단서를 즉시 표시. CSS only — JS 없이도
+       바로 보이고, 로딩 끝나면 hop-boot-ready 클래스로 fade-out. */
+    #hop-boot-splash {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center; flex-direction: column;
+      gap: 16px; z-index: 99999;
+      background: #f0f0f0;
+      color: #333;
+      transition: opacity 220ms ease;
+      pointer-events: none;
+    }
+    html.hop-dark-active-pre #hop-boot-splash,
+    html[data-theme='dark'] #hop-boot-splash {
+      background: #1a221d; color: #ddd;
+    }
+    @media (prefers-color-scheme: dark) {
+      html[data-theme='auto'] #hop-boot-splash {
+        background: #1a221d; color: #ddd;
+      }
+    }
+    .hop-boot-ready #hop-boot-splash { opacity: 0; }
+    .hop-boot-ready #hop-boot-splash.hop-boot-removed { display: none; }
+
+    .hop-boot-spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(120, 130, 160, 0.18);
+      border-top-color: #6182d6;
+      border-radius: 50%;
+      animation: hop-boot-spin 800ms linear infinite;
+    }
+    @keyframes hop-boot-spin {
+      to { transform: rotate(360deg); }
+    }
+    .hop-boot-text {
+      font-size: 13px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      letter-spacing: -0.01em;
+    }
+    .hop-boot-brand {
+      font-size: 18px; font-weight: 800; letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
   </style>
-  <script type="module" crossorigin src="/view/assets/index-Cmiy_2Bx.js"></script>
+  <script type="module" crossorigin src="/view/assets/index-vBGkgfHI.js"></script>
   <link rel="modulepreload" crossorigin href="/view/assets/core-CdWhNIZN.js">
   <link rel="stylesheet" crossorigin href="/view/assets/index-Cj8PapwQ.css">
 </head>
 <body>
+  <!-- 부트 스플래시: window.show() 직후 즉시 보이는 로딩 화면.
+       main.ts 의 initialize() 완료 시 hop-boot-ready 클래스가 붙어 fade-out. -->
+  <div id="hop-boot-splash" aria-hidden="true">
+    <div class="hop-boot-brand">YHWP</div>
+    <div class="hop-boot-spinner"></div>
+    <div class="hop-boot-text">문서 엔진 준비 중...</div>
+  </div>
+
   <div id="studio-root">
     <!-- 메뉴바 -->
     <div id="menu-bar">
@@ -447,7 +500,7 @@
       <div class="tb-group">
         <button class="tb-btn" title="개체 속성 (P)" data-cmd="format:object-properties"><span class="tb-sprite icon-obj-props"></span><span class="tb-label">개체<br/>속성</span></button>
         <button class="tb-btn" title="문자표 (Alt+F10)" data-cmd="insert:symbols"><span class="tb-sprite icon-symbols"></span><span class="tb-label">문자표</span></button>
-        <button class="tb-btn" title="하이퍼링크"><span class="tb-sprite icon-hyperlink"></span><span class="tb-label">하이퍼<br/>링크</span></button>
+        <button class="tb-btn" data-cmd="insert:hyperlink" title="하이퍼링크 (Ctrl+K+H)"><span class="tb-sprite icon-hyperlink"></span><span class="tb-label">하이퍼<br/>링크</span></button>
       </div>
       <span class="tb-sep"></span>
       <div class="tb-group tb-rotate-group" style="display:none">
