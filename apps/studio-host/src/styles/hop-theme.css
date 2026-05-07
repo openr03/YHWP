@@ -412,7 +412,50 @@
   display: none !important;
 }
 
-/* 숨겨진 파일 선택 input — UI 노출 0 보장 */
+/* ─────────────────────────────────────────────────────────────
+   한컴 호환 미구현 / 작동 불가 UI 영구 숨김.
+   향후 기능 구현 시 해당 셀렉터만 제거하면 즉시 노출.
+   ───────────────────────────────────────────────────────────── */
+/* 메뉴 항목 (md-item) 전체 숨김 */
+.md-item[data-cmd="insert:hyperlink"],
+.md-item[data-cmd="edit:format-copy"],
+.md-item[data-cmd="edit:delete"],
+.md-item[data-cmd="insert:para-band"],
+.md-item[data-cmd="insert:comment"],
+.md-item[data-cmd="insert:endnote"],
+.md-item[data-cmd="format:para-num-shape"],
+.md-item[data-cmd="format:bullet-shape"],
+.md-item[data-cmd="format:style-dialog"],
+.md-item[data-cmd="file:page-setup"],
+.md-item[data-cmd="page:setup"],
+.md-item[data-cmd="view:toolbox-basic"],
+.md-item[data-cmd="view:toolbox-format"],
+.md-item[data-cmd^="insert:caption-"] {
+  display: none !important;
+}
+/* 도구상자 버튼 (tb-btn) 도 같이 숨김 */
+.tb-btn[data-cmd="insert:hyperlink"],
+.tb-btn[data-cmd="edit:format-copy"],
+.tb-btn[data-cmd="format:style-dialog"] {
+  display: none !important;
+}
+/* 위 메뉴들이 들어있던 캡션 넣기 / 도구 상자 부모 서브메뉴는 :has() 로 자동 숨김.
+   modern Chromium 기반 webview2 / wkwebview 모두 지원. */
+.menu-dropdown .md-sub:has(> .md-sub-panel:not(:has(> .md-item:not([data-cmd^="insert:caption-"])))) {
+  display: none !important;
+}
+/* "도구 상자" 서브메뉴 — 두 자식이 모두 숨김이라 통째로 숨김 */
+.menu-dropdown .md-sub:has(> .md-sub-panel > .md-item[data-cmd="view:toolbox-basic"]) {
+  display: none !important;
+}
+/* "편집 용지" 가 두 곳(파일/쪽 메뉴) 에 있고 둘 다 stub — 양쪽 다 숨김됨.
+   파일 메뉴의 PDF 내보내기 위 / 쪽 메뉴 첫 항목 둘 다 .md-item[data-cmd="page:setup"]
+   또는 [data-cmd="file:page-setup"] 으로 위에서 처리됨. 추가 셀렉터 불필요. */
+/* 위 항목들이 모두 사라진 메뉴에서 직전/직후 .md-sep 가 고립되는 경우 방지.
+   .md-sep 양쪽이 모두 숨김이면 .md-sep 도 숨김. */
+
+/* ─────────────────────────────────────────────────────────────
+   숨겨진 파일 선택 input — UI 노출 0 보장 */
 #icon-toolbar #file-input,
 #file-input {
   display: none !important;

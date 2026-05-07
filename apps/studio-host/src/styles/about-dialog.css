@@ -13,45 +13,52 @@
 /* ── 브랜드 헤더 ─────────────────────────────── */
 .about-brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  margin-bottom: 14px;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 16px 18px;
+  margin-bottom: 16px;
   background: linear-gradient(
-    135deg,
-    var(--color-accent-bg, #e7eaf4) 0%,
-    var(--color-accent-bg-light, #f0f3fa) 100%
+    180deg,
+    var(--color-accent-bg, rgba(97, 130, 214, 0.14)) 0%,
+    var(--color-accent-bg-light, rgba(97, 130, 214, 0.04)) 100%
   );
   border: 1px solid var(--color-border-light, #d0d0d0);
-  border-radius: 8px;
+  border-radius: 12px;
+  text-align: center;
 }
 
 .about-brand-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
   background: var(--color-surface, #fff);
-  padding: 4px;
+  padding: 6px;
   border: 1px solid var(--color-border-light, #d0d0d0);
-  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .about-brand-text {
-  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
 .about-brand-name {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--color-text, #333);
+  letter-spacing: -0.03em;
+  color: var(--color-text, #222);
   line-height: 1.1;
 }
 
 .about-brand-tag {
-  margin-top: 3px;
-  font-size: 11px;
-  color: var(--color-text-secondary, #555);
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--color-text-secondary, #666);
+  letter-spacing: -0.01em;
 }
 
 /* ── 제품명/버전 ─────────────────────────────── */

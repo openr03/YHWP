@@ -1,9 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="YHWP app icon">
-  <rect width="1024" height="1024" fill="none"/>
-  <rect x="64" y="64" width="896" height="896" rx="214" fill="#0d8045"/>
-  <g stroke="#ffffff" stroke-width="148" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <line x1="300" y1="280" x2="512" y2="568"/>
-    <line x1="724" y1="280" x2="512" y2="568"/>
-    <line x1="512" y1="568" x2="512" y2="800"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="YHWP">
+  <!--
+    YHWP 로고 — 훈민정음 영감 + 모던 미니멀
+    중심에 한글 자모 ㅎ (Hieut: HWP 의 H, 한글의 첫 자모) 를 기하 형태로 단순화.
+    천(가로획) · 인(점) · 지(원) — 천지인 사상.
+    배경은 한국 전통 단청 청록색 그라데이션. 우상단에 작은 낙관(印章) 모티프.
+  -->
+  <defs>
+    <linearGradient id="yhwp-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#114b66"/>
+      <stop offset="100%" stop-color="#082030"/>
+    </linearGradient>
+    <linearGradient id="yhwp-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#dde6f2"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" rx="220" fill="url(#yhwp-bg)"/>
+  <rect x="56" y="56" width="912" height="912" rx="190"
+        fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2"/>
+
+  <!-- ㅎ : 가로 짧은획 + 점 + 원 -->
+  <g fill="url(#yhwp-ink)">
+    <rect x="280" y="280" width="464" height="80" rx="40"/>
+    <rect x="488" y="380" width="48" height="76" rx="24"/>
+  </g>
+  <circle cx="512" cy="660" r="170"
+          fill="none" stroke="url(#yhwp-ink)" stroke-width="80"/>
+
+  <!-- 우상단 낙관 (印) -->
+  <g transform="translate(840, 184)">
+    <rect x="-46" y="-46" width="92" height="92" rx="12" fill="#c63a3a"/>
+    <text x="0" y="16"
+          font-family="'NanumMyeongjo','Noto Serif KR',serif"
+          font-size="60" font-weight="700"
+          text-anchor="middle"
+          fill="#fff5e8">영</text>
   </g>
 </svg>

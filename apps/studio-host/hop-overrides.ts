@@ -25,8 +25,6 @@ const overrideIds = [
   'ui/about-dialog',
   'ui/custom-select',
   'ui/dialog',
-  'ui/hyperlink-dialog',
-  'ui/new-doc-dialog',
   'ui/print-dialog',
   'ui/style-edit-dialog',
   'ui/toolbar',

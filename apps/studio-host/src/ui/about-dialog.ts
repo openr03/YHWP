@@ -62,43 +62,17 @@ const BRAND_CARDS: InfoCard[] = [
       { label: 'youngsam.net', url: 'https://youngsam.net' },
     ],
   },
-  {
-    emoji: '⭐',
-    title: 'GitHub',
-    subtitle: 'openr03/YHWP',
-    description: '소스 코드 · 릴리즈 노트 · 기여 가이드.',
-    links: [
-      { label: '저장소', url: 'https://github.com/openr03/YHWP' },
-      { label: '릴리즈', url: 'https://github.com/openr03/YHWP/releases' },
-    ],
-  },
-  {
-    emoji: '🐞',
-    title: '피드백 · 버그 리포트',
-    subtitle: '의견을 보내주세요',
-    description:
-      '오류 / 기능 제안 / 사용자 경험 문의. 한 줄짜리 글도 환영.',
-    links: [
-      {
-        label: '새 이슈 작성',
-        url: 'https://github.com/openr03/YHWP/issues/new',
-      },
-      {
-        label: '이슈 목록',
-        url: 'https://github.com/openr03/YHWP/issues',
-      },
-    ],
-  },
 ];
 
 function buildBrand(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'about-brand';
+  // 센터 정렬 — 로고를 상단 가운데에 크게, 그 아래 브랜드명 + 태그라인.
   wrap.innerHTML = `
-    <img class="about-brand-logo" src="/favicon.ico" alt="YHWP" width="40" height="40" />
+    <img class="about-brand-logo" src="/favicon.ico" alt="YHWP" width="64" height="64" />
     <div class="about-brand-text">
       <div class="about-brand-name">YHWP</div>
-      <div class="about-brand-tag">오픈소스 HWP / HWPX 데스크톱 앱</div>
+      <div class="about-brand-tag">오픈소스 HWP · HWPX 데스크톱 앱</div>
     </div>
   `;
   return wrap;
@@ -184,31 +158,22 @@ export class AboutDialog extends UpstreamAboutDialog {
       body.appendChild(cardsWrap);
     }
 
-    // 7) 업스트림의 "한글과컴퓨터 공개 문서 참고" 고지문은 HWP 스펙 라이선스
-    //    상 필수 표시 — 그대로 유지하되 작게.
-
-    // 8) 라이선스 섹션 제목을 통일된 스타일로 (MIT 의무)
-    const licenseTitle = body.querySelector('.about-license-title');
-    if (licenseTitle instanceof HTMLElement) {
-      licenseTitle.classList.add('about-section-title');
+    // 7) "한글과컴퓨터 공개 문서 참고" 고지문 / 라이선스 표 / 저작권 줄은
+    //    영삼님 요청으로 about 다이얼로그 화면에서 모두 제거. (LICENSE 파일과
+    //    git 저장소에는 그대로 보존되어 MIT 의 source-form 의무는 충족.)
+    const hideSelectors = [
+      '.about-notice',
+      '.about-license-title',
+      '.about-license-table',
+      '.about-copyright',
+    ];
+    for (const sel of hideSelectors) {
+      body.querySelectorAll<HTMLElement>(sel).forEach((el) => {
+        el.style.display = 'none';
+      });
     }
 
-    // 9) 업스트림 저작권 줄 ("© 2026 rhwp: Edward Kim") 은 MIT 의 "preserve
-    //    copyright notice" 의무라 그대로 두되, YHWP 저작권을 위에 우선 표시
-    const copyright = body.querySelector('.about-copyright');
-    if (copyright?.parentNode) {
-      const hopCopy = document.createElement('div');
-      hopCopy.className = 'about-copyright about-copyright-hop';
-      hopCopy.textContent = '© 2026 영삼넷 (youngsam.net)';
-      copyright.parentNode.insertBefore(hopCopy, copyright);
-      // 업스트림 저작권은 작게 표시
-      if (copyright instanceof HTMLElement) {
-        copyright.style.fontSize = '10px';
-        copyright.style.opacity = '0.55';
-      }
-    }
-
-    // 10) http(s) 외부 링크는 시스템 브라우저로 열기
+    // 8) http(s) 외부 링크는 시스템 브라우저로 열기
     attachExternalLinkHandler(body);
 
     return body;

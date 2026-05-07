@@ -2,7 +2,6 @@ import { fileCommands as upstreamFileCommands } from '@upstream/command/commands
 import type { CommandDef, CommandServices } from '@/command/types';
 import type { DesktopBridgeApi } from '@/core/tauri-bridge';
 import { openPrintDialog } from '@/ui/print-dialog';
-import { showConfirm } from '@upstream/ui/confirm-dialog';
 
 type DesktopFileBridge = Pick<
   DesktopBridgeApi,
@@ -74,42 +73,7 @@ const desktopCommands = new Map<string, CommandDef>([
       }
     },
   }],
-  ['file:new-doc', withDesktopOverride('file:new-doc', async (services) => {
-    const ctx = services.getContext();
-    if (ctx.hasDocument) {
-      const ok = await showConfirm(
-        '새로 만들기',
-        '현재 문서를 닫고 새 문서를 만드시겠습니까?\n저장하지 않은 내용은 사라집니다.',
-      );
-      if (!ok) return;
-    }
-
-    const { NewDocDialog } = await import('@/ui/new-doc-dialog');
-    const dialog = new NewDocDialog();
-    const choice = await dialog.show();
-    if (!choice) return;
-
-    if (choice.kind === 'blank') {
-      services.eventBus.emit('create-new-document');
-      return;
-    }
-
-    // 템플릿 — 파일 바이트를 wasm 에 로드해서 새 문서로 시작
-    try {
-      const wasm = services.wasm as unknown as {
-        loadDocument: (bytes: Uint8Array, name: string) => unknown;
-      };
-      const docInfo = wasm.loadDocument(choice.bytes, choice.name);
-      services.eventBus.emit('desktop-document-loaded', {
-        docInfo,
-        message: `${choice.name} (템플릿)`,
-      });
-    } catch (err) {
-      console.error('[file:new-doc] 템플릿 로드 실패:', err);
-      alert(`템플릿 로드 실패: ${(err as Error).message ?? err}`);
-      services.eventBus.emit('create-new-document');
-    }
-  })],
+  // file:new-doc 은 upstream 그대로 — 클릭 즉시 빈 문서 생성 (다이얼로그 X).
   ['file:open', withDesktopOverride('file:open', async (services) => {
     const desktop = desktopBridge(services.wasm);
     if (!desktop) return upstream('file:open').execute(services);

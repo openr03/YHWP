@@ -14,14 +14,6 @@ vi.mock('@upstream/command/commands/file', () => ({
   ],
 }));
 
-vi.mock('@upstream/ui/confirm-dialog', () => ({
-  showConfirm: vi.fn(),
-}));
-
-vi.mock('@/ui/new-doc-dialog', () => ({
-  NewDocDialog: vi.fn(),
-}));
-
 vi.mock('@/ui/print-dialog', () => ({
   openPrintDialog,
 }));
