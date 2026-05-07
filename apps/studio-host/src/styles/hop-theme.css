@@ -5,28 +5,28 @@
    data-theme="dark" / "light" 는 사용자 선택 (localStorage 저장).
    ─────────────────────────────────────────────── */
 
-/* 다크 테마 공통 토큰 */
+/* 다크 테마 공통 토큰 — v2 (refined: 약한 청회색 톤, 검정 일색 탈피) */
 :root[data-theme='dark'] {
-  --color-surface: #14191c;
-  --color-surface-raised: #1a2024;
-  --color-bg: #0e1316;
-  --color-bg-light: #161c1f;
+  --color-surface: #1d2530;          /* 도구상자/메뉴바: 청회색 */
+  --color-surface-raised: #242c38;   /* 다이얼로그/카드: 한 단계 밝게 */
+  --color-bg: #151b24;               /* 본문 바깥(scroll-container): 깊은 네이비 */
+  --color-bg-light: #1a2230;         /* 서식바 배경 */
 
-  --color-border: #2a3036;
-  --color-border-light: #252b30;
-  --color-border-lighter: #202529;
-  --color-border-dark: #3a4046;
-  --color-border-input: #333a40;
+  --color-border: #303948;
+  --color-border-light: #2a3240;
+  --color-border-lighter: #232a36;
+  --color-border-dark: #3c4658;
+  --color-border-input: #353e4d;
 
-  --color-text: #e6e8eb;
-  --color-text-secondary: #c5c8cc;
-  --color-text-muted: #9ba0a6;
-  --color-text-hint: #7e848a;
-  --color-text-disabled: #5a6066;
-  --color-text-placeholder: #6a7076;
+  --color-text: #eef0f4;
+  --color-text-secondary: #c8ccd4;
+  --color-text-muted: #9aa0ac;
+  --color-text-hint: #7d8390;
+  --color-text-disabled: #5a606c;
+  --color-text-placeholder: #6a707c;
 
-  --color-hover-bg: #1f262b;
-  --color-active-bg: #2a3239;
+  --color-hover-bg: #2a3342;
+  --color-active-bg: #344054;
   --color-selected-bg: rgba(97, 130, 214, 0.22);
   --color-focus-border: #7ba8e3;
 
@@ -35,40 +35,40 @@
   --color-primary-light: #98bce8;
   --color-primary-hover: #6692d4;
   --color-primary-subtle: #6c8fc7;
-  --color-accent-bg: rgba(97, 130, 214, 0.18);
-  --color-accent-bg-light: rgba(97, 130, 214, 0.1);
+  --color-accent-bg: rgba(123, 168, 227, 0.18);
+  --color-accent-bg-light: rgba(123, 168, 227, 0.08);
 
   --shadow-dropdown: 2px 2px 14px rgba(0, 0, 0, 0.6);
   --shadow-dialog: 4px 4px 22px rgba(0, 0, 0, 0.7);
   --shadow-light: 2px 2px 8px rgba(0, 0, 0, 0.4);
-  --overlay-bg: rgba(0, 0, 0, 0.55);
+  --overlay-bg: rgba(8, 14, 22, 0.55);
 
   color-scheme: dark;
 }
 
-/* 시스템 다크 모드를 따르는 auto 테마 */
+/* 시스템 다크 모드를 따르는 auto 테마 — refined v2 */
 @media (prefers-color-scheme: dark) {
   :root[data-theme='auto'] {
-    --color-surface: #14191c;
-    --color-surface-raised: #1a2024;
-    --color-bg: #0e1316;
-    --color-bg-light: #161c1f;
+    --color-surface: #1d2530;
+    --color-surface-raised: #242c38;
+    --color-bg: #151b24;
+    --color-bg-light: #1a2230;
 
-    --color-border: #2a3036;
-    --color-border-light: #252b30;
-    --color-border-lighter: #202529;
-    --color-border-dark: #3a4046;
-    --color-border-input: #333a40;
+    --color-border: #303948;
+    --color-border-light: #2a3240;
+    --color-border-lighter: #232a36;
+    --color-border-dark: #3c4658;
+    --color-border-input: #353e4d;
 
-    --color-text: #e6e8eb;
-    --color-text-secondary: #c5c8cc;
-    --color-text-muted: #9ba0a6;
-    --color-text-hint: #7e848a;
-    --color-text-disabled: #5a6066;
-    --color-text-placeholder: #6a7076;
+    --color-text: #eef0f4;
+    --color-text-secondary: #c8ccd4;
+    --color-text-muted: #9aa0ac;
+    --color-text-hint: #7d8390;
+    --color-text-disabled: #5a606c;
+    --color-text-placeholder: #6a707c;
 
-    --color-hover-bg: #1f262b;
-    --color-active-bg: #2a3239;
+    --color-hover-bg: #2a3342;
+    --color-active-bg: #344054;
     --color-selected-bg: rgba(97, 130, 214, 0.22);
     --color-focus-border: #7ba8e3;
 
@@ -77,13 +77,13 @@
     --color-primary-light: #98bce8;
     --color-primary-hover: #6692d4;
     --color-primary-subtle: #6c8fc7;
-    --color-accent-bg: rgba(97, 130, 214, 0.18);
-    --color-accent-bg-light: rgba(97, 130, 214, 0.1);
+    --color-accent-bg: rgba(123, 168, 227, 0.18);
+    --color-accent-bg-light: rgba(123, 168, 227, 0.08);
 
     --shadow-dropdown: 2px 2px 14px rgba(0, 0, 0, 0.6);
     --shadow-dialog: 4px 4px 22px rgba(0, 0, 0, 0.7);
     --shadow-light: 2px 2px 8px rgba(0, 0, 0, 0.4);
-    --overlay-bg: rgba(0, 0, 0, 0.55);
+    --overlay-bg: rgba(8, 14, 22, 0.55);
 
     color-scheme: dark;
   }
@@ -205,30 +205,56 @@
   z-index: 10;
 }
 
-/* prominent 변형: 메뉴바 안에서 한눈에 보이는 칩 형태 */
+/* prominent 변형: 메뉴바 우상단 칩 — 세련된 인디고/teal 그라데이션, pill 형 */
 .hop-theme-toggle-prominent {
   width: auto !important;
   height: auto !important;
-  padding: 4px 10px 4px 8px !important;
-  gap: 6px;
+  padding: 5px 12px 5px 10px !important;
+  gap: 7px;
   display: inline-flex !important;
   align-items: center;
-  border: 1px solid var(--color-border-light, #d0d0d0) !important;
-  background: var(--color-surface, #fff) !important;
-  color: var(--color-text-secondary, #555) !important;
-  border-radius: 6px !important;
+  border: 1px solid transparent !important;
+  background: linear-gradient(
+    180deg,
+    var(--color-accent-bg, rgba(97, 130, 214, 0.14)) 0%,
+    var(--color-accent-bg-light, rgba(97, 130, 214, 0.06)) 100%
+  ) !important;
+  color: var(--color-primary-dark, var(--color-primary, #335095)) !important;
+  border-radius: 999px !important;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: background 140ms ease, border-color 140ms ease, transform 80ms ease, box-shadow 140ms ease;
 }
 .hop-theme-toggle-prominent:hover {
-  background: var(--color-accent-bg, #e7eaf4) !important;
+  background: var(--color-primary, #6182d6) !important;
   border-color: var(--color-primary, #6182d6) !important;
-  color: var(--color-primary-dark, #335095) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 6px rgba(97, 130, 214, 0.32);
+}
+.hop-theme-toggle-prominent:active {
+  transform: translateY(1px);
 }
 .hop-theme-toggle-prominent svg {
   width: 14px !important;
   height: 14px !important;
+  flex-shrink: 0;
+}
+/* 다크모드에서 hover 색 보정 — primary 가 너무 밝지 않게 */
+.hop-dark-active .hop-theme-toggle-prominent {
+  background: linear-gradient(
+    180deg,
+    rgba(123, 168, 227, 0.18) 0%,
+    rgba(123, 168, 227, 0.08) 100%
+  ) !important;
+  color: var(--color-primary-light, #98bce8) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.hop-dark-active .hop-theme-toggle-prominent:hover {
+  background: var(--color-primary-dark, #5b8bd1) !important;
+  border-color: var(--color-primary-dark, #5b8bd1) !important;
+  color: #fff !important;
 }
 .hop-theme-toggle-label {
   white-space: nowrap;
@@ -328,6 +354,19 @@
 .hop-dark-active #icon-toolbar .tb-label,
 .hop-dark-active #icon-toolbar .tb-icon-text {
   color: var(--color-text);
+}
+
+/* 다크모드 — 도구상자/서식바 아이콘 스프라이트 가시성.
+   업스트림 sprite 가 어두운색 PNG 라 다크 배경에서 안 보임.
+   invert + hue-rotate 로 자연스러운 밝은 톤으로 변환. */
+.hop-dark-active #icon-toolbar .tb-sprite,
+.hop-dark-active #style-bar .sb-sprite,
+.hop-dark-active .menu-dropdown .md-icon {
+  filter: invert(0.92) hue-rotate(180deg) brightness(1.05);
+}
+.hop-dark-active #icon-toolbar .tb-btn:hover .tb-sprite,
+.hop-dark-active #style-bar .sb-btn:hover .sb-sprite {
+  filter: invert(1) hue-rotate(180deg) brightness(1.1);
 }
 
 /* ───────────────────────────────────────────────
@@ -469,22 +508,17 @@
 /* (메뉴바 좌측 YHWP 워드마크는 영삼님 요청으로 제거됨 — 코드 미주입) */
 
 /* ───────────────────────────────────────────────
-   편집 영역 마우스 커서 — 종이 위에 올리면 텍스트 입력 커서 (I-beam)
-   업스트림이 명시적으로 안 잡고 있을 때를 대비
+   편집 영역 마우스 커서 — 종이 위 I-beam, 페이지 바깥 default.
+   주의: scroll-container 의 inline cursor 는 JS(input-handler-mouse) 가
+   picture/table 핸들 hover 시 nwse-resize 등으로 동적 변경하므로,
+   여기 CSS 룰은 canvas(페이지 렌더링) 에만 좁게 적용. 광범위하게
+   `#scroll-container > *` 같은 셀렉터로 잡으면 핸들 cursor 가 무효화.
    ─────────────────────────────────────────────── */
-#scroll-content,
-#scroll-content svg,
-#scroll-content .hop-page,
-#scroll-content [class*='page'],
-#editor-area #scroll-container {
+#scroll-content > canvas {
   cursor: text;
 }
-/* 회색 영역(스크롤 컨테이너의 페이지 바깥) 은 기본 커서 */
 #scroll-container {
   cursor: default;
-}
-#scroll-container > * {
-  cursor: text;
 }
 
 /* ═══════════════════════════════════════════════════════════
