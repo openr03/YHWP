@@ -2,8 +2,8 @@ use tauri::menu::{Menu, MenuItemBuilder, SubmenuBuilder};
 use tauri::{App, Emitter};
 
 pub fn install(app: &mut App) -> tauri::Result<()> {
-    let app_about = MenuItemBuilder::with_id("file:about", "About HOP").build(app)?;
-    let app_quit = MenuItemBuilder::with_id("app:quit", "Quit HOP")
+    let app_about = MenuItemBuilder::with_id("file:about", "About YHWP").build(app)?;
+    let app_quit = MenuItemBuilder::with_id("app:quit", "Quit YHWP")
         .accelerator("CmdOrCtrl+Q")
         .build(app)?;
     let new_doc = MenuItemBuilder::with_id("file:new-doc", "New")
@@ -64,7 +64,7 @@ pub fn install(app: &mut App) -> tauri::Result<()> {
     let fit_page = MenuItemBuilder::with_id("view:zoom-fit-page", "Fit Page").build(app)?;
     let fit_width = MenuItemBuilder::with_id("view:zoom-fit-width", "Fit Width").build(app)?;
 
-    let app_menu = SubmenuBuilder::new(app, "HOP")
+    let app_menu = SubmenuBuilder::new(app, "YHWP")
         .item(&app_about)
         .separator()
         .services()
