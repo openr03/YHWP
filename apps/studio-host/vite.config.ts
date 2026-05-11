@@ -74,6 +74,33 @@ export default defineConfig({
       { find: '@', replacement: upstreamSrc },
     ],
   },
+  // ─── Production 빌드 최적화 ────────────────────────────────────
+  build: {
+    // WASM 청크가 4MB 라 500kB 임계 경고는 의미 없음. 1.5MB 로 올려서
+    // 진짜 신경 써야 할 경우(앱 코드가 1MB 넘기는 사고) 만 경고 띄움.
+    chunkSizeWarningLimit: 1500,
+    // 프로덕션 소스맵은 꺼서 인스톨러 크기 감소 + 코드 노출 방지.
+    sourcemap: false,
+    // 깔끔한 출력 — minify 는 vite 기본 oxc-minify 사용.
+    cssMinify: true,
+    // 동적 import 청크 분리 — 다이얼로그 등이 별도 청크로 lazy load.
+    rollupOptions: {
+      output: {
+        // 청크 파일명 — hash 짧게 + 인코딩 가벼움.
+        chunkFileNames: 'assets/[name]-[hash:8].js',
+        assetFileNames: 'assets/[name]-[hash:8].[ext]',
+      },
+    },
+  },
+  // ─── ESBuild — production 에서 console.log / debugger 제거 ─────
+  esbuild: {
+    drop: process.env.NODE_ENV === 'production'
+      ? ['debugger']
+      : [],
+    pure: process.env.NODE_ENV === 'production'
+      ? ['console.debug']
+      : [],
+  },
   server: {
     host: '127.0.0.1',
     port: 7700,

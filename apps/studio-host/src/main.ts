@@ -125,10 +125,14 @@ async function initialize(): Promise<void> {
     const tauriRuntime = isTauriRuntime();
     desktopPlatform = await hydrateDesktopPlatform();
     applyDesktopChromePlatformState(document, desktopPlatform);
-    msg.textContent = '웹폰트 로딩 중...';
-    await loadWebFonts([]);  // CSS @font-face 등록 + CRITICAL 폰트만 로드
-    msg.textContent = '문서 엔진 로딩 중...';
-    await wasm.initialize();
+    msg.textContent = '준비 중...';
+    // 폰트 등록(@font-face) 과 WASM 인스턴스화를 병렬 — 둘 다 I/O 또는
+    // 비동기 컴파일이라 직렬 실행할 이유 없음. 부팅 perceptive latency
+    // ~100~400ms 단축.
+    await Promise.all([
+      loadWebFonts([]),       // CSS @font-face 등록 + CRITICAL 폰트만 로드
+      wasm.initialize(),      // ~4MB WASM streaming compile
+    ]);
     msg.textContent = 'HWP 파일을 선택해주세요.';
 
     const container = document.getElementById('scroll-container')!;

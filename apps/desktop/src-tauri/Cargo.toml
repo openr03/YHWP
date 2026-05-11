@@ -16,6 +16,18 @@ path = "src/main.rs"
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
+# ─── Release 프로파일 최적화 (인스톨러 크기 ↓, 런타임 속도 ↑) ─────────
+[profile.release]
+opt-level = 3          # 최대 최적화
+lto = "thin"           # Link-time optimization (thin 모드 — 빠른 컴파일 + 거의 fat 수준 성능)
+codegen-units = 1      # 단일 codegen unit → 더 공격적 inline + 작은 바이너리
+strip = "symbols"      # 디버그 심볼 제거 → 바이너리 크기 감소
+panic = "abort"        # unwind 미사용 → 약간 빠른 panic + 크기 감소
+
+[profile.release.package."*"]
+# 의존 크레이트도 동일하게 최적화 (기본 dev 였음)
+opt-level = 3
+
 [dependencies]
 rhwp = { path = "../../../third_party/rhwp" }
 tauri = { version = "2", features = [] }
