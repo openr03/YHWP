@@ -1,8 +1,8 @@
 {
   "name": "hop-desktop",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "private": true,
-  "description": "HOP - Open HWP desktop app",
+  "description": "YHWP - 오픈소스 HWP/HWPX 데스크톱 앱",
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
