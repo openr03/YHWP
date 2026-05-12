@@ -55,20 +55,21 @@ const STYLE = `
   gap: 16px;
 }
 .hop-web-welcome-logo {
-  width: 80px;
-  height: 80px;
+  width: 88px;
+  height: 88px;
   border-radius: 22px;
-  background: linear-gradient(180deg, #114b66 0%, #082030 100%);
+  overflow: hidden;
   display: grid;
   place-items: center;
   box-shadow:
-    0 12px 36px rgba(11, 32, 48, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    0 12px 36px rgba(160, 30, 30, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
   position: relative;
 }
 .hop-web-welcome-logo svg {
-  width: 50px;
-  height: 50px;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 .hop-web-welcome-titles {
   text-align: center;
@@ -301,11 +302,21 @@ function build(): HTMLDivElement {
     <div class="hop-web-welcome-stage">
       <div class="hop-web-welcome-brand">
         <div class="hop-web-welcome-logo" aria-hidden="true">
-          <!-- 한글 자모 ㅎ — Hieut (HWP 의 H, 한글의 첫 자모) -->
-          <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-            <rect x="20" y="20" width="40" height="6.4" rx="3.2" fill="#ffffff"/>
-            <rect x="37.6" y="27.5" width="4" height="7" rx="2" fill="#ffffff"/>
-            <circle cx="40" cy="50" r="13.6" fill="none" stroke="#ffffff" stroke-width="6.4"/>
+          <!-- 영삼님 지정 로고 — 적색 사각형 + 흰 '한' (ㅎ + ᅡ + ㄴ) -->
+          <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <rect width="256" height="256" rx="28" fill="#DC2626"/>
+            <g fill="#ffffff">
+              <!-- ㅎ -->
+              <circle cx="84" cy="46" r="9"/>
+              <rect x="28" y="68" width="112" height="14" rx="7"/>
+              <circle cx="84" cy="128" r="28" fill="none" stroke="#ffffff" stroke-width="14"/>
+              <!-- ㅏ : 세로획 오른쪽에 가로획 -->
+              <rect x="178" y="36" width="14" height="178" rx="7"/>
+              <rect x="192" y="108" width="34" height="14" rx="7"/>
+              <!-- ㄴ -->
+              <rect x="32" y="168" width="14" height="46" rx="7"/>
+              <rect x="32" y="200" width="172" height="14" rx="7"/>
+            </g>
           </svg>
         </div>
         <div class="hop-web-welcome-titles">
