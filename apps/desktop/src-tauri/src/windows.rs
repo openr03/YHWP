@@ -28,8 +28,7 @@ pub fn create_editor_window_with_label(app: &AppHandle, label: &str) -> Result<(
         .title("")
         .inner_size(width, height)
         .min_inner_size(MIN_EDITOR_WINDOW_WIDTH, MIN_EDITOR_WINDOW_HEIGHT)
-        .center()
-        .visible(false);
+        .center();
     #[cfg(windows)]
     let builder = builder.zoom_hotkeys_enabled(true);
 

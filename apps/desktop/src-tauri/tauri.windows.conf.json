@@ -9,7 +9,6 @@
         "height": 900,
         "minWidth": 960,
         "minHeight": 720,
-        "visible": false,
         "center": true,
         "zoomHotkeysEnabled": true
       }
