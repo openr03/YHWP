@@ -1,6 +1,6 @@
 {
   "name": "yhwp-desktop",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "private": true,
   "description": "YHWP - 오픈소스 HWP/HWPX 데스크톱 앱",
   "type": "module",
