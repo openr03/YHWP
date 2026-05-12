@@ -18,7 +18,7 @@ TARGET="$ROOT/site-youngsam/view"
 
 echo ">>> 웹 뷰어 빌드 (base: /view/)"
 cd "$ROOT"
-HOP_WEB_BASE=/view/ pnpm --filter @golbin/hop-studio-host build
+YHWP_WEB_BASE=/view/ pnpm --filter @youngsam/yhwp-studio-host build
 
 if [ ! -d "$DIST" ]; then
   echo "[ERROR] dist 없음: $DIST"

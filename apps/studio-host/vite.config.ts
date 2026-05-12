@@ -60,11 +60,11 @@ function decodePath(path: string): string {
 }
 
 export default defineConfig({
-  base: process.env.HOP_WEB_BASE || './',
+  base: process.env.YHWP_WEB_BASE || './',
   plugins: [hopFontAssets()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
-    __HOP_VERSION__: JSON.stringify(desktopConfig.version),
+    __YHWP_VERSION__: JSON.stringify(desktopConfig.version),
   },
   resolve: {
     alias: [

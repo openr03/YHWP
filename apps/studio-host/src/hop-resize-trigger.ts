@@ -43,8 +43,8 @@ const trailingTimers = new Set<ReturnType<typeof setTimeout>>();
 const TRAILING_DELAYS_MS = [80, 240] as const;
 
 function getBus(): MinimalEventBus | null {
-  return (window as unknown as { __hopEventBus?: MinimalEventBus })
-    .__hopEventBus ?? null;
+  return (window as unknown as { __yhwpEventBus?: MinimalEventBus })
+    .__yhwpEventBus ?? null;
 }
 
 function emitViewportResize(): void {

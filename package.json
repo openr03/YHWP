@@ -1,6 +1,6 @@
 {
   "name": "yhwp",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "private": true,
   "description": "YHWP — 오픈소스 HWP/HWPX 데스크톱 앱 (운영: 영삼넷 youngsam.net)",
   "license": "MIT",
@@ -12,12 +12,12 @@
   "type": "module",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "build:studio": "pnpm --filter @golbin/hop-studio-host build",
-    "build:desktop": "pnpm --filter hop-desktop build",
-    "tauri": "pnpm --filter hop-desktop tauri",
+    "build:studio": "pnpm --filter @youngsam/yhwp-studio-host build",
+    "build:desktop": "pnpm --filter yhwp-desktop build",
+    "tauri": "pnpm --filter yhwp-desktop tauri",
     "test": "pnpm run test:upstream && pnpm run test:studio && pnpm run test:desktop",
     "test:upstream": "node --test tests/update-upstream.test.mjs",
-    "test:studio": "pnpm --filter @golbin/hop-studio-host test",
+    "test:studio": "pnpm --filter @youngsam/yhwp-studio-host test",
     "test:desktop": "cd apps/desktop/src-tauri && cargo test",
     "clippy:desktop": "cd apps/desktop/src-tauri && cargo clippy -- -D warnings"
   }

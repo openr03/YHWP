@@ -132,16 +132,16 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build studio host
-        run: pnpm --filter @golbin/hop-studio-host build
+        run: pnpm --filter @youngsam/yhwp-studio-host build
 
       - name: Build Tauri bundle
         shell: bash
         run: |
           set -euxo pipefail
           if [ -n "${{ matrix.tauri_target }}" ]; then
-            pnpm --filter hop-desktop tauri build --target ${{ matrix.tauri_target }}
+            pnpm --filter yhwp-desktop tauri build --target ${{ matrix.tauri_target }}
           else
-            pnpm --filter hop-desktop tauri build
+            pnpm --filter yhwp-desktop tauri build
           fi
 
       - name: Rename + upload artifacts

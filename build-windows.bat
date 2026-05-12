@@ -44,12 +44,12 @@ if errorlevel 1 goto :pnpmfail
 
 echo.
 echo [3/4] studio-host 빌드  (프론트엔드)
-call pnpm --filter @golbin/hop-studio-host build
+call pnpm --filter @youngsam/yhwp-studio-host build
 if errorlevel 1 goto :feFail
 
 echo.
 echo [4/4] Tauri MSI 빌드  (5~10분 소요)
-call pnpm --filter hop-desktop tauri build --bundles msi
+call pnpm --filter yhwp-desktop tauri build --bundles msi
 if errorlevel 1 goto :tauriFail
 
 echo.

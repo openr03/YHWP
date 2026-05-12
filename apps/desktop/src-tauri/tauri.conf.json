@@ -1,11 +1,11 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "YHWP",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "identifier": "net.youngsam.yhwp",
   "build": {
-    "beforeDevCommand": "cd ../.. && pnpm --filter @golbin/hop-studio-host dev",
-    "beforeBuildCommand": "cd ../.. && pnpm --filter @golbin/hop-studio-host build",
+    "beforeDevCommand": "cd ../.. && pnpm --filter @youngsam/yhwp-studio-host dev",
+    "beforeBuildCommand": "cd ../.. && pnpm --filter @youngsam/yhwp-studio-host build",
     "devUrl": "http://127.0.0.1:7700",
     "frontendDist": "../../studio-host/dist"
   },

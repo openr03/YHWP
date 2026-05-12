@@ -134,7 +134,7 @@ export class AboutDialog extends UpstreamAboutDialog {
 
     const yhwpBig = document.createElement('div');
     yhwpBig.className = 'about-version-hop';
-    yhwpBig.textContent = `YHWP ${__HOP_VERSION__}`;
+    yhwpBig.textContent = `YHWP ${__YHWP_VERSION__}`;
     const tech = body.querySelector('.about-tech');
     if (tech?.parentNode) {
       tech.parentNode.insertBefore(yhwpBig, tech);

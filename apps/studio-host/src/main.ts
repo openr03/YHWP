@@ -65,7 +65,7 @@ if (import.meta.env.DEV) {
 
 // HOP 리사이즈 트리거에서 eventBus 의 viewport-resize 를 강제 emit 하기 위해
 // 항상 노출 (debug + production 모두). __wasm 은 보안상 노출 안 함.
-(window as any).__hopEventBus = eventBus;
+(window as any).__yhwpEventBus = eventBus;
 let canvasView: CanvasView | null = null;
 let inputHandler: InputHandler | null = null;
 let toolbar: Toolbar | null = null;

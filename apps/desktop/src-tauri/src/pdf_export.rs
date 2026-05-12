@@ -198,7 +198,7 @@ fn svgs_to_pdf(svg_pages: &[String]) -> Result<Vec<u8>, String> {
 
     let info_ref = alloc.bump();
     pdf.document_info(info_ref)
-        .producer(pdf_writer::TextStr("hop-desktop"));
+        .producer(pdf_writer::TextStr("yhwp-desktop"));
 
     Ok(pdf.finish())
 }
