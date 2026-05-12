@@ -356,32 +356,63 @@
   color: var(--color-text);
 }
 
-/* 다크모드 — 도구상자/서식바/메뉴 아이콘 가시성 강화.
+/* 다크모드 — 도구상자/서식바/메뉴 아이콘 가시성 강화 v3.
    업스트림 sprite 가 어두운색 PNG (검정 stroke 기반).
-   invert(1) 로 완전 반전 + brightness 더 올려 확실히 보이게. */
+   다크 토대 + sprite 색을 흰색 가까이 끌어올림. drop-shadow 로 약간의
+   글로우 추가 — 옅은 아이콘도 또렷이 보임. */
 .hop-dark-active #icon-toolbar .tb-sprite,
-.hop-dark-active #icon-toolbar .tb-icon-text,
 .hop-dark-active #style-bar .sb-sprite,
-.hop-dark-active #style-bar .sb-icon,
 .hop-dark-active .menu-dropdown .md-icon,
 .hop-dark-active .md-sub-panel .md-icon,
 .hop-dark-active .tb-split-menu .tb-split-icon {
-  filter: invert(1) brightness(1.25) contrast(0.9);
+  filter:
+    invert(1) brightness(1.7) contrast(0.85)
+    drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.4));
 }
 .hop-dark-active #icon-toolbar .tb-btn:hover .tb-sprite,
-.hop-dark-active #icon-toolbar .tb-btn:hover .tb-icon-text,
-.hop-dark-active #style-bar .sb-btn:hover .sb-sprite,
-.hop-dark-active #style-bar .sb-btn:hover .sb-icon {
-  filter: invert(1) brightness(1.5) contrast(0.9);
+.hop-dark-active #style-bar .sb-btn:hover .sb-sprite {
+  filter:
+    invert(1) brightness(2) contrast(0.85)
+    drop-shadow(0 0 0.8px rgba(123, 168, 227, 0.6));
+}
+/* icon-text 류 (오른쪽화살표 등 텍스트 아이콘) — 색 직접 */
+.hop-dark-active #icon-toolbar .tb-icon-text {
+  color: #f5f8fc;
+}
+.hop-dark-active #icon-toolbar .tb-btn:hover .tb-icon-text {
+  color: var(--color-primary-light, #98bce8);
 }
 /* 텍스트 라벨도 확실히 밝게 (보더 / 배경 동시 보정) */
 .hop-dark-active #icon-toolbar .tb-btn,
 .hop-dark-active #icon-toolbar .tb-label,
-.hop-dark-active #icon-toolbar .tb-icon-text,
 .hop-dark-active #style-bar .sb-btn,
 .hop-dark-active #style-bar .sb-label,
 .hop-dark-active #menu-bar .menu-title {
   color: var(--color-text, #eef0f4);
+}
+
+/* 다크모드 — 도구상자 배경을 한 단계 더 깊게 + 미세 그라데이션 +
+   아래쪽 thin highlight 보더로 sprite 와의 대비 최대화. */
+.hop-dark-active #icon-toolbar {
+  background: linear-gradient(180deg, #1a232f 0%, #161d28 100%);
+  border-bottom: 1px solid #0f1620;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+.hop-dark-active #style-bar {
+  background: linear-gradient(180deg, #161d28 0%, #131922 100%);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   도구상자 라벨 토글 (보기 → 도구상자 라벨 보기)
+   기본은 표시. localStorage 'yhwp:toolbar-labels-visible-v1' = '0' 이면
+   html.hop-tb-no-labels 가 붙고 라벨 숨김 + 아이콘만으로 컴팩트 모드.
+   ────────────────────────────────────────────────────────────── */
+html.hop-tb-no-labels #icon-toolbar .tb-label {
+  display: none !important;
+}
+html.hop-tb-no-labels #icon-toolbar .tb-btn {
+  padding-bottom: 4px;
+  padding-top: 4px;
 }
 
 /* ───────────────────────────────────────────────

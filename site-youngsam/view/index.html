@@ -24,6 +24,9 @@
         /* Tauri 윈도우가 보이기 전에라도, 혹시 visible:false 가 안 먹는 환경에서 흰 플래시를 줄이기 위해 인라인 배경색 지정 */
         var bg = darkActive ? '#1a221d' : '#f0f0f0';
         document.documentElement.style.background = bg;
+        // 도구상자 라벨 표시 환경설정 — 기본 ON. '0' 이면 숨김 클래스 부여.
+        var tbLabels = localStorage.getItem('yhwp:toolbar-labels-visible-v1');
+        if (tbLabels === '0') document.documentElement.classList.add('hop-tb-no-labels');
       } catch (_) {}
     })();
   </script>
@@ -81,9 +84,9 @@
       margin-bottom: 4px;
     }
   </style>
-  <script type="module" crossorigin src="/view/assets/index-CFRmE3Gq.js"></script>
+  <script type="module" crossorigin src="/view/assets/index-BlCbtfUb.js"></script>
   <link rel="modulepreload" crossorigin href="/view/assets/core-CdWhNIZN.js">
-  <link rel="stylesheet" crossorigin href="/view/assets/index-qVfQjy56.css">
+  <link rel="stylesheet" crossorigin href="/view/assets/index-CiWfeyqO.css">
 </head>
 <body>
   <!-- 부트 스플래시: window.show() 직후 즉시 보이는 로딩 화면.
@@ -164,6 +167,7 @@
           <div class="md-item" data-cmd="view:toggle-clip"><span class="md-icon"></span><span class="md-label">잘림 보기</span></div>
           <div class="md-item" data-cmd="view:grid-settings"><span class="md-icon icon-grid"></span><span class="md-label">격자 설정</span></div>
           <div class="md-sep"></div>
+          <div class="md-item" data-cmd="view:toggle-toolbar-labels"><span class="md-icon"></span><span class="md-label">도구상자 라벨 보기</span></div>
           <div class="md-sub">
             <span class="md-label">도구 상자</span><span class="md-arrow">▶</span>
             <div class="md-sub-panel">

@@ -13,7 +13,6 @@
     "fs:allow-write",
     "fs:allow-remove",
     "log:default",
-    "store:default",
-    "window-state:default"
+    "store:default"
   ]
 }

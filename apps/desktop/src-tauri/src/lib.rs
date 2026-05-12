@@ -48,7 +48,9 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        // tauri-plugin-window-state 제거 — 이전 세션 위치 복원이 좌측상단
+        // 흰 사각형 → 가운데 점프 사고 원인. 매 실행마다 config 의 center:true
+        // 로 깨끗하게 시작.
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
             let paths = document_paths_from_args(&args, &cwd);
             // 인자에 파일 경로가 있으면 그 파일들을 새 창들로 열기.
