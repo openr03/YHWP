@@ -6,9 +6,9 @@
     <circle cx="84" cy="46" r="9"/>
     <rect x="28" y="68" width="112" height="14" rx="7"/>
     <circle cx="84" cy="128" r="28" fill="none" stroke="#ffffff" stroke-width="14"/>
-    <!-- ㅏ -->
+    <!-- ㅏ : 세로획 오른쪽에 가로획 (ㅓ 와 좌우 반대) -->
     <rect x="178" y="36" width="14" height="178" rx="7"/>
-    <rect x="144" y="108" width="34" height="14" rx="7"/>
+    <rect x="192" y="108" width="34" height="14" rx="7"/>
     <!-- ㄴ -->
     <rect x="32" y="168" width="14" height="46" rx="7"/>
     <rect x="32" y="200" width="172" height="14" rx="7"/>
