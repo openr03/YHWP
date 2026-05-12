@@ -356,17 +356,32 @@
   color: var(--color-text);
 }
 
-/* 다크모드 — 도구상자/서식바 아이콘 스프라이트 가시성.
-   업스트림 sprite 가 어두운색 PNG 라 다크 배경에서 안 보임.
-   invert + hue-rotate 로 자연스러운 밝은 톤으로 변환. */
+/* 다크모드 — 도구상자/서식바/메뉴 아이콘 가시성 강화.
+   업스트림 sprite 가 어두운색 PNG (검정 stroke 기반).
+   invert(1) 로 완전 반전 + brightness 더 올려 확실히 보이게. */
 .hop-dark-active #icon-toolbar .tb-sprite,
+.hop-dark-active #icon-toolbar .tb-icon-text,
 .hop-dark-active #style-bar .sb-sprite,
-.hop-dark-active .menu-dropdown .md-icon {
-  filter: invert(0.92) hue-rotate(180deg) brightness(1.05);
+.hop-dark-active #style-bar .sb-icon,
+.hop-dark-active .menu-dropdown .md-icon,
+.hop-dark-active .md-sub-panel .md-icon,
+.hop-dark-active .tb-split-menu .tb-split-icon {
+  filter: invert(1) brightness(1.25) contrast(0.9);
 }
 .hop-dark-active #icon-toolbar .tb-btn:hover .tb-sprite,
-.hop-dark-active #style-bar .sb-btn:hover .sb-sprite {
-  filter: invert(1) hue-rotate(180deg) brightness(1.1);
+.hop-dark-active #icon-toolbar .tb-btn:hover .tb-icon-text,
+.hop-dark-active #style-bar .sb-btn:hover .sb-sprite,
+.hop-dark-active #style-bar .sb-btn:hover .sb-icon {
+  filter: invert(1) brightness(1.5) contrast(0.9);
+}
+/* 텍스트 라벨도 확실히 밝게 (보더 / 배경 동시 보정) */
+.hop-dark-active #icon-toolbar .tb-btn,
+.hop-dark-active #icon-toolbar .tb-label,
+.hop-dark-active #icon-toolbar .tb-icon-text,
+.hop-dark-active #style-bar .sb-btn,
+.hop-dark-active #style-bar .sb-label,
+.hop-dark-active #menu-bar .menu-title {
+  color: var(--color-text, #eef0f4);
 }
 
 /* ───────────────────────────────────────────────

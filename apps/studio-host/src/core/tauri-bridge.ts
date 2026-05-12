@@ -575,11 +575,22 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
   }
 
   private updateDocumentTitle(): void {
-    if (!this.docId) {
-      document.title = '';
-      return;
+    const title = (() => {
+      if (!this.docId) return 'YHWP';
+      const name = this.fileName || '문서';
+      return `${this.dirty ? '• ' : ''}${name} — YHWP`;
+    })();
+    document.title = title;
+    // Tauri 윈도우 OS 타이틀바도 명시적으로 동기화 (자동 sync 에 의존하지 않음).
+    void this.setNativeWindowTitle(title);
+  }
+
+  private async setNativeWindowTitle(title: string): Promise<void> {
+    try {
+      const { getCurrentWebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+      await getCurrentWebviewWindow().setTitle(title);
+    } catch {
+      // Tauri 런타임이 아닌 환경(웹 뷰어)에서는 무시 — document.title 만으로 충분
     }
-    const name = this.fileName || '문서';
-    document.title = `${this.dirty ? '• ' : ''}${name}`;
   }
 }

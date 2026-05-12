@@ -36,7 +36,11 @@ const trailingTimers = new Set<ReturnType<typeof setTimeout>>();
  * 예약. 이미 같은 시점 타이머가 있어도 cancel 하지 않고 누적 → 빠른
  * 연속 resize 에도 마지막 settle 시점이 잡히도록 함.
  */
-const TRAILING_DELAYS_MS = [100, 300, 600, 1000] as const;
+// 짧은 trailing 만 유지 — 너무 멀리(600ms+) trailing 을 잡으면 윈도우 애니메이션
+// 종료 후에 또 emit 이 들어가서 본문이 "천천히 센터로" 보정되는 느낌 발생.
+// ResizeObserver(viewport-manager) 가 native 로 size change 마다 emit 하므로
+// trailing 은 짧게 — 1~2 frame 누락 cover 정도면 충분.
+const TRAILING_DELAYS_MS = [80, 240] as const;
 
 function getBus(): MinimalEventBus | null {
   return (window as unknown as { __hopEventBus?: MinimalEventBus })

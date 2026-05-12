@@ -51,7 +51,15 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
             let paths = document_paths_from_args(&args, &cwd);
+            // 인자에 파일 경로가 있으면 그 파일들을 새 창들로 열기.
+            // 빈 인자(아이콘 더블클릭 등)면 새 빈 에디터 창 1개 추가 —
+            // 사용자가 앱 아이콘 두 번째 클릭 시 또 다른 작업 창이 열리는
+            // multi-window UX. (process 는 단일 인스턴스 유지: 자원 효율적)
             if paths.is_empty() {
+                let app_clone = app.clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    let _ = windows::create_editor_window(&app_clone);
+                });
                 return;
             }
             #[cfg(target_os = "macos")]

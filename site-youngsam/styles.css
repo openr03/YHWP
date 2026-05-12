@@ -259,6 +259,21 @@ code {
     text-decoration: none;
 }
 
+/* 웹뷰어 CTA — 다른 nav 항목과 시각적으로 구분 */
+.topnav a.topnav-cta {
+    color: var(--brand);
+    font-weight: 600;
+    padding: 4px 10px;
+    border: 1px solid var(--brand);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--brand) 8%, transparent);
+    transition: background 140ms ease, color 140ms ease;
+}
+.topnav a.topnav-cta:hover {
+    background: var(--brand);
+    color: #fff;
+}
+
 .topactions {
     display: flex;
     gap: 8px;
