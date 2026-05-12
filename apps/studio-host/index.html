@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html lang="ko" data-theme="auto">
+<html lang="ko" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="/favicon.ico" />
   <title></title>
   <script>
-    /* FOUC 방지: CSS 로드 전에 data-theme 과 본문 클래스를 미리 적용 */
+    /* FOUC 방지: CSS 로드 전에 data-theme 과 본문 클래스를 미리 적용
+       — 저장된 값 없으면 'light' 기본 (요청사항) */
     (function () {
       try {
         var t = localStorage.getItem('hop:theme');
-        if (t !== 'light' && t !== 'dark' && t !== 'auto') t = 'auto';
+        if (t !== 'light' && t !== 'dark' && t !== 'auto') t = 'light';
         document.documentElement.dataset.theme = t;
         var darkActive =
           t === 'dark' ||

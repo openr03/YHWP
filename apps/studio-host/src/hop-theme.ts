@@ -18,7 +18,7 @@ function readStoredTheme(): HopTheme {
   } catch {
     /* localStorage 사용 불가 환경 */
   }
-  return 'auto';
+  return 'light';
 }
 
 function persist(theme: HopTheme): void {
@@ -75,10 +75,10 @@ export function getHopTheme(): HopTheme {
 }
 
 function nextTheme(current: HopTheme): HopTheme {
-  // auto → light → dark → auto
-  if (current === 'auto') return 'light';
+  // light → dark → auto → light  (기본값이 light이므로 light 시작)
   if (current === 'light') return 'dark';
-  return 'auto';
+  if (current === 'dark') return 'auto';
+  return 'light';
 }
 
 const SUN_ICON = `
@@ -107,8 +107,8 @@ function labelText(theme: HopTheme): string {
 }
 
 function tooltipFor(theme: HopTheme): string {
-  if (theme === 'dark') return '다크 테마 (클릭 → 자동)';
   if (theme === 'light') return '라이트 테마 (클릭 → 다크)';
+  if (theme === 'dark') return '다크 테마 (클릭 → 자동)';
   return '시스템 자동 (클릭 → 라이트)';
 }
 

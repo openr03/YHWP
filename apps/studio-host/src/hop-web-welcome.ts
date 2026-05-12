@@ -78,9 +78,22 @@ const STYLE = `
   background: var(--color-accent-bg-light, rgba(97, 130, 214, 0.06));
 }
 .hop-web-welcome-drop-icon {
-  font-size: 28px;
-  margin-bottom: 6px;
-  opacity: 0.55;
+  margin: 0 auto 10px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--color-primary, #6182d6);
+  opacity: 0.7;
+}
+.hop-web-welcome-drop-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.hop-web-welcome-drop:hover .hop-web-welcome-drop-icon,
+.hop-web-welcome-drop.is-dragover .hop-web-welcome-drop-icon {
+  opacity: 1;
 }
 .hop-web-welcome-drop-text {
   font-size: 13px;
@@ -180,7 +193,13 @@ function build(): HTMLDivElement {
       </p>
 
       <label class="hop-web-welcome-drop" id="hop-web-welcome-drop">
-        <div class="hop-web-welcome-drop-icon" aria-hidden="true">⤴</div>
+        <div class="hop-web-welcome-drop-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.25"/>
+            <path d="m8 17 4-4 4 4"/>
+            <path d="M12 13v8"/>
+          </svg>
+        </div>
         <div class="hop-web-welcome-drop-text">파일을 이 영역에 드롭하거나 클릭해서 선택</div>
         <div class="hop-web-welcome-drop-hint">.hwp · .hwpx 지원</div>
       </label>
@@ -189,10 +208,6 @@ function build(): HTMLDivElement {
         <a class="hop-web-welcome-btn hop-web-welcome-btn-primary"
            href="https://hwp.youngsam.net" target="_blank" rel="noopener">
           데스크톱 앱 다운로드 ↗
-        </a>
-        <a class="hop-web-welcome-btn hop-web-welcome-btn-secondary"
-           href="https://github.com/openr03/YHWP" target="_blank" rel="noopener">
-          GitHub
         </a>
       </div>
 
@@ -242,6 +257,7 @@ export function initHopWebWelcome(eventBus: EventBus): void {
   editor.appendChild(overlay);
 
   // 문서 로드되면 닫음
+  eventBus.on('document-opened', () => hide());
   eventBus.on('document-changed', () => hide());
   eventBus.on('desktop-document-loaded', () => hide());
 }

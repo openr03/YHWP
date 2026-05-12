@@ -541,6 +541,8 @@ async function initializeDocument(docInfo: DocumentInfo, displayName: string): P
     toolbar?.setEnabled(true);
     toolbar?.initStyleDropdown();
     inputHandler?.activateWithCaretPosition();
+    // 환영 화면을 닫기 위해 문서 로드 완료 이벤트 발행 (dirty 처리 없는 가벼운 신호)
+    eventBus.emit('document-opened');
   } catch (error) {
     console.error('[initDoc] 오류:', error);
     if (window.innerWidth < 768) alert(`초기화 오류: ${error}`);
