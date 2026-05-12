@@ -1,6 +1,6 @@
 [package]
 name = "yhwp-desktop"
-version = "0.1.15"
+version = "0.1.16"
 edition = "2021"
 description = "YHWP - 오픈소스 HWP/HWPX 데스크톱 앱"
 license = "MIT"

@@ -279,7 +279,7 @@ mod tests {
         let cwd = dir.path().to_string_lossy();
         let paths = document_paths_from_args(
             &[
-                dir.path().join("HOP.exe").to_string_lossy().to_string(),
+                dir.path().join("yhwp.exe").to_string_lossy().to_string(),
                 "first.hwp".to_string(),
                 "notes.txt".to_string(),
                 "second.HWPX".to_string(),
