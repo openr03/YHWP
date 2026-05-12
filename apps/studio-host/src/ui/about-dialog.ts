@@ -56,9 +56,10 @@ const BRAND_CARDS: InfoCard[] = [
     emoji: '🌐',
     title: '영삼넷',
     subtitle: 'youngsam.net',
-    description: 'YHWP 제작 · 운영 · 배포.',
+    description: 'YHWP 제작 · 운영 · 배포 — 영삼넷의 오픈소스 프로그램 라인업의 한 축.',
     links: [
       { label: 'hwp.youngsam.net', url: 'https://hwp.youngsam.net' },
+      { label: 'YHWP 소개 페이지 ↗', url: 'https://youngsam.net/programs/yhwp' },
       { label: 'youngsam.net', url: 'https://youngsam.net' },
     ],
   },

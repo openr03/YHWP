@@ -410,9 +410,15 @@
 html.hop-tb-no-labels #icon-toolbar .tb-label {
   display: none !important;
 }
+html.hop-tb-no-labels #icon-toolbar {
+  height: 38px !important;     /* upstream 의 56px override */
+  padding-top: 3px !important;
+  padding-bottom: 3px !important;
+}
 html.hop-tb-no-labels #icon-toolbar .tb-btn {
-  padding-bottom: 4px;
-  padding-top: 4px;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  min-height: 0 !important;
 }
 
 /* ───────────────────────────────────────────────

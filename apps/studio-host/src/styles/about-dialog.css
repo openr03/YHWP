@@ -125,31 +125,39 @@
 
 .about-info-card {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  gap: 12px;
-  padding: 12px 14px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  padding: 16px 18px;
   background: var(--color-surface-raised, #fafafa);
   border: 1px solid var(--color-border-light, #d0d0d0);
-  border-radius: 8px;
+  border-radius: 12px;
   transition:
-    border-color 120ms ease,
-    transform 120ms ease;
+    border-color 140ms ease,
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
 }
 
 .about-info-card:hover {
   border-color: var(--color-primary-light, #4a90d9);
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(97, 130, 214, 0.12);
 }
 
 .about-info-emoji {
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
-  background: var(--color-accent-bg, #e7eaf4);
-  border-radius: 8px;
+  background: linear-gradient(
+    180deg,
+    var(--color-accent-bg, rgba(97, 130, 214, 0.18)) 0%,
+    var(--color-accent-bg-light, rgba(97, 130, 214, 0.08)) 100%
+  );
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .about-info-body {
@@ -186,19 +194,20 @@
 .about-info-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
+  gap: 5px;
+  padding: 5px 12px;
   background: var(--color-surface, #fff);
   border: 1px solid var(--color-border-light, #d0d0d0);
   border-radius: 999px;
   color: var(--color-primary-dark, #335095);
-  font-size: var(--font-size-xs, 10px);
+  font-size: var(--font-size-xs, 11px);
   font-weight: 600;
   text-decoration: none;
   transition:
-    background 120ms ease,
-    color 120ms ease,
-    border-color 120ms ease;
+    background 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease,
+    transform 80ms ease;
 }
 
 .about-info-link:hover {
@@ -206,6 +215,9 @@
   border-color: var(--color-primary, #6182d6);
   color: #fff;
   text-decoration: none;
+}
+.about-info-link:active {
+  transform: translateY(1px);
 }
 
 .about-info-arrow {
