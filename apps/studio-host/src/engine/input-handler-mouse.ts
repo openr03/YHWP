@@ -1290,6 +1290,33 @@ export function handleResizeHover(this: any, e: MouseEvent): void {
   const pageX = (contentX - pageLeft) / zoom;
   const pageY = (contentY - pageOffset) / zoom;
 
+  // ─── 시드 캐시 ────────────────────────────────────────────────
+  // 현재 커서가 표 셀 안에 있거나 표가 객체 선택된 상태면 그 표의 셀 bbox 를
+  // 미리 캐시에 채워둔다. 이게 없으면 사용자가 셀 안을 한 번도 거치지 않고
+  // 표 외곽(우측 끝, 하단 등)으로 마우스를 가져갈 때 hit-test 가 영원히
+  // 실패해 캐시도 비어 경계선 감지가 안 된다.
+  let seedRef: { sec: number; ppi: number; ci: number } | null = null;
+  try {
+    if (this.cursor.isInTableObjectSelection?.()) {
+      const r = this.cursor.getSelectedTableRef?.();
+      if (r) seedRef = { sec: r.sec, ppi: r.ppi, ci: r.ci };
+    } else {
+      const pos = this.cursor.getPosition?.();
+      if (pos?.parentParaIndex !== undefined && pos?.controlIndex !== undefined) {
+        seedRef = { sec: pos.sectionIndex, ppi: pos.parentParaIndex, ci: pos.controlIndex };
+      }
+    }
+  } catch { /* 무시 */ }
+  if (seedRef && (!this.cachedTableRef ||
+      this.cachedTableRef.sec !== seedRef.sec ||
+      this.cachedTableRef.ppi !== seedRef.ppi ||
+      this.cachedTableRef.ci !== seedRef.ci)) {
+    try {
+      this.cachedCellBboxes = this.wasm.getTableCellBboxes(seedRef.sec, seedRef.ppi, seedRef.ci);
+      this.cachedTableRef = seedRef;
+    } catch { /* 시드 실패 시 캐시 손대지 않음 */ }
+  }
+
   // hitTest로 표 셀 위인지 확인
   let tableRef: { sec: number; ppi: number; ci: number } | null = null;
   try {

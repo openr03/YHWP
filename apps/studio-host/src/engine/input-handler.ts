@@ -480,8 +480,21 @@ export class InputHandler {
     this.container.style.cursor = 'crosshair';
   }
 
-  /** 도형 배치 모드 진입 (도형 타입 지정) */
+  /** 도형 배치 모드 진입 (도형 타입 지정).
+   *
+   *  이전에 그림/표 객체가 선택된 상태(예: 직전 도형 삽입 직후)면 해제 후 진입.
+   *  안 그러면 cursor.getPosition() 이 직전 개체의 앵커를 반환해 같은 위치에
+   *  쌓이거나, picture-object 핸들러와 충돌해 두 번째 도형부터 안 만들어짐. */
   enterShapePlacementMode(shapeType: string): void {
+    if (this.cursor.isInPictureObjectSelection()) {
+      this.cursor.moveOutOfSelectedPicture();
+      this.pictureObjectRenderer?.clear();
+      this.eventBus.emit('picture-object-selection-changed', false);
+    }
+    if (this.cursor.isInTableObjectSelection()) {
+      this.cursor.moveOutOfSelectedTable();
+      this.eventBus.emit('table-object-selection-changed', false);
+    }
     this.shapePlacementType = shapeType;
     if (shapeType.startsWith('connector-')) {
       // 연결선: 개체 연결점 클릭→드래그→연결점 모드

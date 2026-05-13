@@ -317,6 +317,32 @@ function setupGlobalShortcuts(): void {
       }
     }
   }, false);
+
+  // Undo/Redo 폴백 — InputHandler.active 여부 / textarea 포커스 여부와
+  // 무관하게 동작해야 한다. textarea 의 keydown 핸들러가 이미 처리(preventDefault)
+  // 한 경우엔 defaultPrevented 체크로 중복 dispatch 방지.
+  document.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented) return;
+    const target = e.target as HTMLElement;
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLSelectElement ||
+      target.isContentEditable
+    ) {
+      return;
+    }
+    const primaryModifier = hasPrimaryModifier(e, desktopPlatform);
+    if (!primaryModifier || e.altKey) return;
+    const key = e.key.toLowerCase();
+    let cmdId: string | null = null;
+    if (key === 'z' && !e.shiftKey) cmdId = 'edit:undo';
+    else if (key === 'z' && e.shiftKey) cmdId = 'edit:redo';
+    else if (key === 'y' && !e.shiftKey) cmdId = 'edit:redo';
+    if (cmdId) {
+      e.preventDefault();
+      dispatcher.dispatch(cmdId);
+    }
+  }, false);
 }
 
 function setupFileInput(): void {
