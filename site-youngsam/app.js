@@ -350,16 +350,7 @@ async function hydrateRelease() {
         el.textContent = hash || "해시 정보를 찾을 수 없음";
     });
 
-    // Sum total downloads across product assets (exclude .sig and meta)
-    for (const a of release.assets) {
-        if (a.name.endsWith(".sig") || a.name === "SHA256SUMS.txt" || a.name === "latest.json")
-            continue;
-        totalDownloads += a.download_count;
-    }
-    const trustDownloads = document.getElementById("trust-downloads");
-    if (trustDownloads && totalDownloads > 0) {
-        trustDownloads.textContent = fmtCount(totalDownloads);
-    }
+    // (hero-trust 다운로드/스타 카운트 hydration 제거 — 정성적 배지로 대체)
 
     // Re-set primary CTA meta with size
     if (primarySize) {
@@ -377,28 +368,8 @@ async function hydrateRelease() {
 }
 
 /* ──────────────────────────────────────────────
-   GITHUB STARS COUNT
-   ────────────────────────────────────────────── */
-async function hydrateStars() {
-    try {
-        const res = await fetch(`https://api.github.com/repos/${REPO}`, {
-            headers: { Accept: "application/vnd.github+json" },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        const el = document.getElementById("trust-stars");
-        if (el && data.stargazers_count) {
-            el.textContent = fmtCount(data.stargazers_count);
-        }
-    } catch {
-        /* keep static */
-    }
-}
-
-/* ──────────────────────────────────────────────
    FOOTER YEAR + RUN
    ────────────────────────────────────────────── */
 document.getElementById("year").textContent = new Date().getFullYear();
 
 hydrateRelease();
-hydrateStars();
