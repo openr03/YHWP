@@ -23,14 +23,12 @@ export async function openPrintDialog(
   if (pageCount === 0) return;
 
   const pageInfo = document.getPageInfo(0);
-  const widthMm = Math.round((pageInfo.width * 25.4) / 96);
-  const heightMm = Math.round((pageInfo.height * 25.4) / 96);
+  const layout = computePrintLayout(pageInfo);
 
   const root = renderPrintDocumentShell({
     fileName: document.fileName,
     pageCount,
-    widthMm,
-    heightMm,
+    layout,
   });
   for (let i = 0; i < pageCount; i += 1) {
     options.onStatus?.(`인쇄 준비 중... (${i + 1}/${pageCount})`);
@@ -63,18 +61,73 @@ export async function openPrintDialog(
   }
 }
 
+interface PrintLayout {
+  widthMm: number;
+  heightMm: number;
+  marginTopMm: number;
+  marginBottomMm: number;
+  marginLeftMm: number;
+  marginRightMm: number;
+  innerWidthMm: number;
+  innerHeightMm: number;
+}
+
+/** 브라우저(WebView2/Chromium)가 @page margin: 0 을 무시하고 기본 여백을
+ *  강제 적용하는 경우 본문이 짤리는 것을 방지하기 위한 최소 안전 여백.
+ *  대부분의 인쇄 드라이버 기본 여백(약 6.35mm) 보다 넉넉하게 잡는다. */
+const PRINT_SAFETY_MARGIN_MM = 8;
+
+function pxToMm(px: number): number {
+  return (px * 25.4) / 96;
+}
+
+/** HWP 페이지 정보로부터 인쇄 레이아웃을 계산한다.
+ *
+ *  @page margin: 0 으로 두면 브라우저(특히 Chromium/WebView2)가 사용자
+ *  설정의 기본 여백(보통 6.35mm)을 강제로 적용해 본문이 짤리는 문제가 있다.
+ *  안전 여백을 미리 @page margin 으로 잡고 .hop-print-page 도 그만큼 줄여서
+ *  SVG 전체(머리말/꼬리말 포함)가 비율 그대로 살짝 축소되어 출력되도록 한다.
+ *  결과적으로 어떤 인쇄 설정에서도 짤림 없이 모든 페이지 내용이 보인다. */
+export function computePrintLayout(pageInfo: {
+  width: number; height: number;
+  marginLeft: number; marginRight: number;
+  marginTop: number; marginBottom: number;
+  marginHeader: number; marginFooter: number;
+}): PrintLayout {
+  const widthMm = pxToMm(pageInfo.width);
+  const heightMm = pxToMm(pageInfo.height);
+  const marginTopMm = PRINT_SAFETY_MARGIN_MM;
+  const marginBottomMm = PRINT_SAFETY_MARGIN_MM;
+  const marginLeftMm = PRINT_SAFETY_MARGIN_MM;
+  const marginRightMm = PRINT_SAFETY_MARGIN_MM;
+  const innerWidthMm = Math.max(0, widthMm - marginLeftMm - marginRightMm);
+  const innerHeightMm = Math.max(0, heightMm - marginTopMm - marginBottomMm);
+  return {
+    widthMm, heightMm,
+    marginTopMm, marginBottomMm, marginLeftMm, marginRightMm,
+    innerWidthMm, innerHeightMm,
+  };
+}
+
+function fmt(mm: number): string {
+  return `${mm.toFixed(3)}mm`;
+}
+
 function renderPrintDocumentShell(payload: {
   fileName: string;
   pageCount: number;
-  widthMm: number;
-  heightMm: number;
+  layout: PrintLayout;
 }): HTMLElement {
   removePrintDocument();
 
+  const L = payload.layout;
   const style = document.createElement('style');
   style.id = PRINT_STYLE_ID;
   style.textContent = `
-  @page { size: ${payload.widthMm}mm ${payload.heightMm}mm; margin: 0; }
+  @page {
+    size: ${fmt(L.widthMm)} ${fmt(L.heightMm)};
+    margin: ${fmt(L.marginTopMm)} ${fmt(L.marginRightMm)} ${fmt(L.marginBottomMm)} ${fmt(L.marginLeftMm)};
+  }
   @media screen {
     #${PRINT_ROOT_ID} {
       display: none;
@@ -92,14 +145,17 @@ function renderPrintDocumentShell(payload: {
     }
     #${PRINT_ROOT_ID} {
       display: block !important;
-      width: ${payload.widthMm}mm;
+      width: ${fmt(L.innerWidthMm)};
       margin: 0 !important;
       padding: 0 !important;
       background: #fff !important;
     }
+    /* 한 페이지(헤더/풋터/본문 모두 포함)는 인쇄 가능 영역(@page margin 안쪽)에
+       꽉 차게 그려진다. SVG 는 0..widthPx × 0..heightPx 좌표계를 가지므로
+       비율을 유지한 채 약 96~98% 로 축소되어 표시된다. */
     #${PRINT_ROOT_ID} .hop-print-page {
-      width: ${payload.widthMm}mm;
-      height: ${payload.heightMm}mm;
+      width: ${fmt(L.innerWidthMm)};
+      height: ${fmt(L.innerHeightMm)};
       margin: 0 !important;
       padding: 0 !important;
       overflow: hidden;
@@ -111,7 +167,7 @@ function renderPrintDocumentShell(payload: {
       break-after: auto;
       page-break-after: auto;
     }
-    #${PRINT_ROOT_ID} svg {
+    #${PRINT_ROOT_ID} .hop-print-page svg {
       display: block;
       width: 100% !important;
       height: 100% !important;

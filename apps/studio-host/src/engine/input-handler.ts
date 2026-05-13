@@ -28,6 +28,15 @@ import * as _picture from '@upstream/engine/input-handler-picture';
 import { resolvePageLeft, resolveVirtualScrollPageLeft } from '../view/page-left';
 import { appendSvgElement, appendSvgLine, createOverlayLabel, createSvgRoot } from './svg-dom';
 
+/** 문단 정렬 키워드(소문자) → TableProperties.horzAlign(파스칼). 표 객체 정렬 시 사용. */
+function mapAlignToHorz(align: string): string {
+  switch (align) {
+    case 'left': return 'Left';
+    case 'right': return 'Right';
+    default: return 'Center'; // center/justify/distribute/split 모두 가운데로 매핑
+  }
+}
+
 /** 클릭 커서 배치 + 키보드 입력을 처리한다 */
 export class InputHandler {
   private cursor: CursorState;
@@ -2249,8 +2258,38 @@ export class InputHandler {
     this.applyToggleFormat(prop);
   }
 
-  /** 문단 정렬 적용 (커맨드 시스템용) */
+  /** 문단 정렬 적용 (커맨드 시스템용)
+   *
+   * 표가 객체 선택된 상태에서는 문단 정렬이 아니라 표 자체의 가로 위치를
+   * 변경해야 한다. 표 형태에 따라 분기:
+   *   - 글자처럼 취급(treatAsChar): 표 앵커가 속한 본문 문단의 정렬을 변경
+   *   - 떠다니는 표(floating): TableProperties.horzAlign 을 변경
+   */
   applyParaAlign(align: string): void {
+    if (this.cursor.isInTableObjectSelection()) {
+      const ref = this.cursor.getSelectedTableRef();
+      if (ref) {
+        try {
+          const tp = this.wasm.getTableProperties(ref.sec, ref.ppi, ref.ci);
+          if (tp.treatAsChar) {
+            // 인라인 표: 앵커가 위치한 본문 문단(parentParaIndex)에 정렬 적용
+            try {
+              this.wasm.applyParaFormat(ref.sec, ref.ppi, JSON.stringify({ alignment: align }));
+              this.afterEdit();
+            } catch (err) {
+              console.warn('[InputHandler] 표 앵커 문단 정렬 실패:', err);
+            }
+          } else {
+            const horzAlign = mapAlignToHorz(align);
+            this.wasm.setTableProperties(ref.sec, ref.ppi, ref.ci, { horzAlign });
+            this.afterEdit();
+          }
+        } catch (err) {
+          console.warn('[InputHandler] 표 정렬 적용 실패:', err);
+        }
+        return;
+      }
+    }
     this.applyParaFormat({ alignment: align });
   }
 

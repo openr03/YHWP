@@ -1299,6 +1299,28 @@ export function handleResizeHover(this: any, e: MouseEvent): void {
     }
   } catch { /* hitTest 실패 시 표 밖 */ }
 
+  // 셀 hit-test 가 실패해도 직전 hover 표의 경계선 근처면 캐시된 표를 재사용한다.
+  // (셀과 셀 사이 경계선, 표 우측/하단 가장자리 등 셀 안으로 hit 되지 않는 위치)
+  // 이게 없으면 셀에서 경계선으로 마우스가 빠져나가는 순간 캐시가 비워지면서
+  // 리사이즈 커서가 한 프레임도 보이지 않는다.
+  if (!tableRef && this.cachedTableRef && this.cachedCellBboxes) {
+    const pageBboxes = this.cachedCellBboxes.filter((b: any) => b.pageIndex === pageIdx);
+    if (pageBboxes.length > 0) {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const b of pageBboxes) {
+        if (b.x < minX) minX = b.x;
+        if (b.x + b.w > maxX) maxX = b.x + b.w;
+        if (b.y < minY) minY = b.y;
+        if (b.y + b.h > maxY) maxY = b.y + b.h;
+      }
+      const tol = 6; // hitTestBorder tolerance(4) 보다 약간 여유
+      if (pageX >= minX - tol && pageX <= maxX + tol &&
+          pageY >= minY - tol && pageY <= maxY + tol) {
+        tableRef = this.cachedTableRef;
+      }
+    }
+  }
+
   if (!tableRef) {
     this.tableResizeRenderer.clear();
     this.cachedTableRef = null;
