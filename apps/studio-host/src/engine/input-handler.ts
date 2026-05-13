@@ -2204,9 +2204,43 @@ export class InputHandler {
       }
       return;
     }
-    // 텍스트 선택 → textarea 포커스 후 execCommand
-    this.focusTextarea();
-    document.execCommand('copy');
+    // 텍스트 선택 — execCommand('copy') 는 빈 textarea 에서 copy 이벤트가
+    // 발화하지 않을 수 있어(특히 WebView2) 신뢰할 수 없다. WASM 클립보드에
+    // 복사한 뒤 navigator.clipboard.writeText 로 시스템 클립보드에 직접 쓴다.
+    this.copySelectionToClipboard();
+  }
+
+  /** 텍스트 선택 영역을 WASM + 시스템 클립보드에 복사. 성공/실패 모두 boolean 반환. */
+  private copySelectionToClipboard(): boolean {
+    if (!this.cursor.hasSelection()) return false;
+    const sel = this.cursor.getSelectionOrdered();
+    if (!sel) return false;
+    const { start, end } = sel;
+    try {
+      if (start.parentParaIndex !== undefined) {
+        this.wasm.copySelectionInCell(
+          start.sectionIndex, start.parentParaIndex, start.controlIndex!, start.cellIndex!,
+          start.cellParaIndex!, start.charOffset,
+          end.cellParaIndex!, end.charOffset,
+        );
+      } else {
+        this.wasm.copySelection(
+          start.sectionIndex,
+          start.paragraphIndex, start.charOffset,
+          end.paragraphIndex, end.charOffset,
+        );
+      }
+      const text = this.wasm.getClipboardText();
+      if (text) {
+        navigator.clipboard.writeText(text).catch((err) => {
+          console.warn('[InputHandler] 클립보드 쓰기 실패:', err);
+        });
+      }
+      return true;
+    } catch (err) {
+      console.warn('[InputHandler] 복사 실패:', err);
+      return false;
+    }
   }
 
   /** 잘라내기 (커맨드 시스템용 — 컨텍스트 메뉴/도구 상자에서 호출) */
@@ -2245,9 +2279,102 @@ export class InputHandler {
       }
       return;
     }
-    // 텍스트 선택 → textarea 포커스 후 execCommand
-    this.focusTextarea();
-    document.execCommand('cut');
+    // 텍스트 선택 — 복사 후 선택 영역 삭제. execCommand('cut') 대신 직접 처리.
+    // deleteSelection 내부에서 executeOperation → afterEdit 까지 처리됨.
+    if (!this.copySelectionToClipboard()) return;
+    this.deleteSelection();
+  }
+
+  /** 붙여넣기 (커맨드 시스템용 — 컨텍스트 메뉴/도구 상자에서 호출).
+   *  키보드 Ctrl+V 는 textarea 의 paste 이벤트로 처리되지만, 도구상자 버튼
+   *  클릭은 paste 이벤트를 발화시키지 못한다. WASM 내부 클립보드를 우선
+   *  확인하고, 없으면 navigator.clipboard.readText 로 외부 텍스트를 받아 삽입. */
+  async performPaste(): Promise<void> {
+    if (!this.active) return;
+
+    // 표/그림 객체 선택 모드면 해제
+    if (this.cursor.isInPictureObjectSelection()) {
+      this.cursor.moveOutOfSelectedPicture();
+      this.pictureObjectRenderer?.clear();
+      this.eventBus.emit('picture-object-selection-changed', false);
+    }
+    if (this.cursor.isInTableObjectSelection()) {
+      this.cursor.moveOutOfSelectedTable();
+      this.eventBus.emit('table-object-selection-changed', false);
+    }
+
+    const hasSelection = this.cursor.hasSelection();
+
+    // 1순위: WASM 내부 클립보드 (서식/표 보존)
+    if (this.wasm.hasInternalClipboard()) {
+      this.executeOperation({ kind: 'snapshot', operationType: 'pasteInternal', operation: (wasm: WasmBridge) => {
+        if (hasSelection) this.deleteSelection();
+        const p = this.cursor.getPosition();
+        let result: string;
+        if (p.parentParaIndex !== undefined) {
+          result = wasm.pasteInternalInCell(
+            p.sectionIndex, p.parentParaIndex, p.controlIndex!,
+            p.cellIndex!, p.cellParaIndex!, p.charOffset,
+          );
+        } else {
+          result = wasm.pasteInternal(p.sectionIndex, p.paragraphIndex, p.charOffset);
+        }
+        const parsed = JSON.parse(result);
+        if (parsed.ok) {
+          const newPos: DocumentPosition = {
+            sectionIndex: p.sectionIndex,
+            paragraphIndex: parsed.paraIdx ?? p.paragraphIndex,
+            charOffset: parsed.charOffset ?? p.charOffset,
+          };
+          if (p.parentParaIndex !== undefined) {
+            newPos.parentParaIndex = p.parentParaIndex;
+            newPos.controlIndex = p.controlIndex;
+            newPos.cellIndex = p.cellIndex;
+            newPos.cellParaIndex = parsed.paraIdx ?? p.cellParaIndex;
+          }
+          return newPos;
+        }
+        return p;
+      }});
+      return;
+    }
+
+    // 2순위: 시스템 클립보드 텍스트
+    let text = '';
+    try {
+      text = await navigator.clipboard.readText();
+    } catch (err) {
+      console.warn('[InputHandler] 클립보드 읽기 실패:', err);
+      return;
+    }
+    if (!text) return;
+
+    this.executeOperation({ kind: 'snapshot', operationType: 'pasteText', operation: (wasm: WasmBridge) => {
+      if (hasSelection) this.deleteSelection();
+      const p = this.cursor.getPosition();
+      let resultJson: string;
+      if (p.parentParaIndex !== undefined) {
+        resultJson = wasm.insertTextInCell(
+          p.sectionIndex, p.parentParaIndex, p.controlIndex!,
+          p.cellIndex!, p.cellParaIndex!, p.charOffset, text,
+        );
+      } else {
+        resultJson = wasm.insertText(p.sectionIndex, p.paragraphIndex, p.charOffset, text);
+      }
+      const parsed = JSON.parse(resultJson);
+      const newPos: DocumentPosition = {
+        sectionIndex: p.sectionIndex,
+        paragraphIndex: parsed.paraIdx ?? p.paragraphIndex,
+        charOffset: parsed.charOffset ?? (p.charOffset + text.length),
+      };
+      if (p.parentParaIndex !== undefined) {
+        newPos.parentParaIndex = p.parentParaIndex;
+        newPos.controlIndex = p.controlIndex;
+        newPos.cellIndex = p.cellIndex;
+        newPos.cellParaIndex = parsed.paraIdx ?? p.cellParaIndex;
+      }
+      return newPos;
+    }});
   }
 
   /** 전체 선택 (커맨드 시스템용) */
