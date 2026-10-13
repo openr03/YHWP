@@ -117,6 +117,12 @@ export async function artifactMetadata(path) {
   };
 }
 
+/** 줄바꿈(CRLF/LF)과 무관한 텍스트 파일 해시. Windows 체크아웃과 CI 결과를 같게 한다. */
+export async function textDigest(path) {
+  const text = (await readFile(path, 'utf8')).replaceAll(String.fromCharCode(13, 10), String.fromCharCode(10));
+  return createHash('sha256').update(text).digest('hex');
+}
+
 export function repoRelativePath(path) {
   return relative(repoRoot, path).replaceAll('\\', '/');
 }
@@ -143,11 +149,11 @@ export async function buildStudioOverrideBaseline(manifest, upstream) {
   for (const entry of manifest.overrides) {
     if (entry.strategy !== 'extension' && entry.strategy !== 'fork') continue;
     const relativePath = entry.id.endsWith('.css') ? entry.id : `${entry.id}.ts`;
-    counterparts[entry.id] = (await artifactMetadata(join(upstreamStudioDir, relativePath))).sha256;
+    counterparts[entry.id] = await textDigest(join(upstreamStudioDir, relativePath));
   }
   const assets = {};
   for (const relativePath of studioMirroredAssetPaths) {
-    assets[relativePath] = (await artifactMetadata(join(upstreamDir, 'rhwp-studio', relativePath))).sha256;
+    assets[relativePath] = await textDigest(join(upstreamDir, 'rhwp-studio', relativePath));
   }
   return {
     version: upstream.version,

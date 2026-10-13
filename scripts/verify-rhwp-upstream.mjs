@@ -17,6 +17,7 @@ import {
   readJson,
   repoRoot,
   run,
+  textDigest,
   upstreamDir,
   upstreamLockPath,
   studioOverrideManifestPath,
@@ -81,8 +82,8 @@ export async function verifyRhwpUpstream() {
   );
   for (const relativePath of studioMirroredAssetPaths) {
     assert.deepEqual(
-      await artifactMetadata(join(studioHostDir, relativePath)),
-      await artifactMetadata(join(upstreamDir, 'rhwp-studio', relativePath)),
+      await textDigest(join(studioHostDir, relativePath)),
+      await textDigest(join(upstreamDir, 'rhwp-studio', relativePath)),
       `${relativePath} must match the pinned upstream studio asset`,
     );
   }
