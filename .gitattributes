@@ -1,0 +1,10 @@
+# 저장소에는 텍스트 파일을 LF 로 저장한다 (Linux CI 와 업스트림 바이트 비교 계약)
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.icns binary
+*.wasm binary
+*.ttf binary
+*.woff2 binary
+*.hwp binary
+*.hwpx binary
