@@ -2,14 +2,14 @@
   "name": "@youngsam/yhwp-studio-host",
   "version": "0.1.0",
   "private": true,
-  "description": "HOP studio host overlay for upstream rhwp-studio",
+  "description": "YHWP studio host overlay for upstream rhwp-studio",
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@rhwp/core": "0.7.8",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-dialog": "^2.7.0",
-    "@tauri-apps/plugin-fs": "2.5.0"
+    "@tauri-apps/plugin-fs": "2.5.0",
+    "lucide": "0.460.0"
   },
   "scripts": {
     "dev": "vite",
@@ -18,8 +18,9 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "typescript": "^6.0.2",
-    "vite": "^8.0.8",
+    "canvaskit-wasm": "^0.42.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2",
     "vitest": "^4.1.2"
   }
 }

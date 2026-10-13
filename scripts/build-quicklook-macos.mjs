@@ -1,0 +1,167 @@
+#!/usr/bin/env node
+import { spawnSync } from 'node:child_process';
+import { copyFileSync, cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const quicklookRoot = join(repoRoot, 'apps/desktop/quicklook');
+const rustRoot = join(quicklookRoot, 'rust');
+const ffiHeader = join(quicklookRoot, 'Sources/Shared/YhwpQuickLookFFI.h');
+const tauriTargetRoot = join(repoRoot, 'apps/desktop/src-tauri/target');
+const stagingRoot = join(tauriTargetRoot, 'quicklook');
+const plugInsDir = join(stagingRoot, 'PlugIns');
+const libDir = join(stagingRoot, 'lib');
+
+if (process.platform !== 'darwin') {
+  console.log('[quicklook] non-macOS platform; skipping Quick Look extension build');
+  process.exit(0);
+}
+
+const target = process.env.YHWP_MACOS_TARGET || defaultMacTarget();
+const swiftTarget = target === 'x86_64-apple-darwin'
+  ? 'x86_64-apple-macosx12.0'
+  : 'aarch64-apple-macosx12.0';
+const releaseDir = join(rustRoot, 'target', target, 'release');
+const staticLib = join(releaseDir, 'libyhwp_quicklook_ffi.a');
+const stagedStaticLib = join(libDir, 'libyhwp_quicklook_ffi.a');
+
+rmSync(stagingRoot, { recursive: true, force: true });
+mkdirSync(plugInsDir, { recursive: true });
+mkdirSync(libDir, { recursive: true });
+
+buildRustStaticLibrary({
+  features: ['native-skia'],
+  output: stagedStaticLib,
+});
+
+buildExtension({
+  moduleName: 'YhwpQuickLookPreview',
+  appexName: 'YhwpQuickLookPreview.appex',
+  staticLib: stagedStaticLib,
+  infoPlist: join(quicklookRoot, 'Resources/Preview/Info.plist'),
+  sources: [
+    join(quicklookRoot, 'Sources/Shared/YhwpQuickLookFFI.swift'),
+    join(quicklookRoot, 'Sources/Preview/HwpPreviewProvider.swift'),
+  ],
+  frameworks: [
+    'CoreFoundation',
+    'CoreGraphics',
+    'CoreText',
+    'Foundation',
+    'QuickLookUI',
+    'UniformTypeIdentifiers',
+    'OSLog',
+  ],
+});
+
+buildExtension({
+  moduleName: 'YhwpQuickLookThumbnail',
+  appexName: 'YhwpQuickLookThumbnail.appex',
+  staticLib: stagedStaticLib,
+  infoPlist: join(quicklookRoot, 'Resources/Thumbnail/Info.plist'),
+  sources: [
+    join(quicklookRoot, 'Sources/Shared/YhwpQuickLookFFI.swift'),
+    join(quicklookRoot, 'Sources/Thumbnail/HwpThumbnailProvider.swift'),
+  ],
+  frameworks: [
+    'CoreGraphics',
+    'CoreFoundation',
+    'CoreText',
+    'Foundation',
+    'ImageIO',
+    'QuickLookThumbnailing',
+    'UniformTypeIdentifiers',
+    'OSLog',
+  ],
+});
+
+console.log(`[quicklook] staged extensions in ${plugInsDir}`);
+
+function buildRustStaticLibrary({ features, output }) {
+  const args = [
+    'build',
+    '--manifest-path',
+    join(rustRoot, 'Cargo.toml'),
+    '--locked',
+    '--release',
+    '--target',
+    target,
+  ];
+  if (features.length > 0) {
+    args.push('--features', features.join(','));
+  }
+
+  run('cargo', args);
+
+  if (!existsSync(staticLib)) {
+    throw new Error(`Quick Look Rust static library was not produced: ${staticLib}`);
+  }
+  copyFileSync(staticLib, output);
+}
+
+function buildExtension({ moduleName, appexName, staticLib, infoPlist, sources, frameworks }) {
+  const appexDir = join(plugInsDir, appexName);
+  const contentsDir = join(appexDir, 'Contents');
+  const macosDir = join(contentsDir, 'MacOS');
+  mkdirSync(macosDir, { recursive: true });
+  cpSync(infoPlist, join(contentsDir, 'Info.plist'));
+
+  const output = join(macosDir, moduleName);
+  const swiftArgs = [
+    '-target',
+    swiftTarget,
+    '-O',
+    '-application-extension',
+    '-parse-as-library',
+    '-emit-executable',
+    '-module-name',
+    moduleName,
+    '-import-objc-header',
+    ffiHeader,
+    '-o',
+    output,
+    ...sources,
+    staticLib,
+    '-Xlinker',
+    '-e',
+    '-Xlinker',
+    '_NSExtensionMain',
+    ...frameworks.flatMap((framework) => ['-framework', framework]),
+  ];
+  run('xcrun', ['swiftc', ...swiftArgs]);
+
+  const entitlements = join(quicklookRoot, 'Resources/Extension.entitlements');
+  const identity = process.env.APPLE_SIGNING_IDENTITY || '-';
+  const timestampArgs = identity === '-' ? ['--timestamp=none'] : ['--timestamp'];
+  run('codesign', [
+    '--force',
+    '--sign',
+    identity,
+    ...timestampArgs,
+    '--options',
+    'runtime',
+    '--entitlements',
+    entitlements,
+    appexDir,
+  ]);
+}
+
+function defaultMacTarget() {
+  return process.arch === 'arm64' ? 'aarch64-apple-darwin' : 'x86_64-apple-darwin';
+}
+
+function run(command, args) {
+  console.log(`[quicklook] ${command} ${args.join(' ')}`);
+  const result = spawnSync(command, args, {
+    cwd: repoRoot,
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      MACOSX_DEPLOYMENT_TARGET: process.env.MACOSX_DEPLOYMENT_TARGET || '12.0',
+    },
+  });
+  if (result.status !== 0) {
+    throw new Error(`${command} failed with exit code ${result.status}`);
+  }
+}

@@ -1,16 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="1024" height="1024" role="img" aria-label="YHWP">
-  <!-- YHWP 로고 v4 — 영삼님 지정 디자인 (한글 '한' / 적색 사각형) -->
-  <rect width="256" height="256" rx="28" fill="#DC2626"/>
-  <g fill="#ffffff">
-    <!-- ㅎ -->
-    <circle cx="84" cy="46" r="9"/>
-    <rect x="28" y="68" width="112" height="14" rx="7"/>
-    <circle cx="84" cy="128" r="28" fill="none" stroke="#ffffff" stroke-width="14"/>
-    <!-- ㅏ : 세로획 오른쪽에 가로획 (ㅓ 와 좌우 반대) -->
-    <rect x="178" y="36" width="14" height="178" rx="7"/>
-    <rect x="192" y="108" width="34" height="14" rx="7"/>
-    <!-- ㄴ -->
-    <rect x="32" y="168" width="14" height="46" rx="7"/>
-    <rect x="32" y="200" width="172" height="14" rx="7"/>
-  </g>
+  <!-- YHWP 로고 v5 — '한' 정체성 유지, YHWP 블루 둥근 사각형 + 문서. 래스터는 scripts/render-app-icon.py 로 생성 -->
+  <defs>
+    <linearGradient id="bg" x1="0.15" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#4C7DFF"/>
+      <stop offset="1" stop-color="#1D3FBF"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.19"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="15" y="15" width="226" height="226" rx="56" fill="url(#bg)"/>
+  <rect x="15" y="15" width="226" height="226" rx="56" fill="url(#gloss)"/>
+  <path d="M73 43.5h77.7L192 84.8V204a9 9 0 0 1-9 9H73a9 9 0 0 1-9-9V52.5a9 9 0 0 1 9-9z" fill="#fff"/>
+  <path d="M150.7 43.5V84.8H192z" fill="#D6E1FF"/>
+  <text x="128" y="152" text-anchor="middle" font-family="'Malgun Gothic','Apple SD Gothic Neo',sans-serif" font-weight="700" font-size="92" fill="#2F62F0">한</text>
+  <rect x="97" y="175" width="62" height="10" rx="5" fill="#FF8A3D"/>
 </svg>

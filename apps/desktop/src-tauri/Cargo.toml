@@ -1,8 +1,8 @@
 [package]
 name = "yhwp-desktop"
-version = "0.1.23"
+version = "0.2.0"
 edition = "2021"
-description = "YHWP - 오픈소스 HWP/HWPX 데스크톱 앱"
+description = "YHWP - Open HWP desktop app"
 license = "MIT"
 
 [lib]
@@ -10,26 +10,14 @@ name = "yhwp_desktop"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
-name = "yhwp"
+name = "yhwp-desktop"
 path = "src/main.rs"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
-# ─── Release 프로파일 최적화 (인스톨러 크기 ↓, 런타임 속도 ↑) ─────────
-[profile.release]
-opt-level = 3          # 최대 최적화
-lto = "thin"           # Link-time optimization (thin 모드 — 빠른 컴파일 + 거의 fat 수준 성능)
-codegen-units = 1      # 단일 codegen unit → 더 공격적 inline + 작은 바이너리
-strip = "symbols"      # 디버그 심볼 제거 → 바이너리 크기 감소
-panic = "abort"        # unwind 미사용 → 약간 빠른 panic + 크기 감소
-
-[profile.release.package."*"]
-# 의존 크레이트도 동일하게 최적화 (기본 dev 였음)
-opt-level = 3
-
 [dependencies]
-rhwp = { path = "../../../third_party/rhwp" }
+yhwp-rhwp-adapter = { path = "../rhwp-adapter" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2.5"
@@ -37,11 +25,36 @@ tauri-plugin-log = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-store = "2"
 tauri-plugin-updater = "2"
+tauri-plugin-window-state = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1", features = ["v4", "serde"] }
 tempfile = "3"
 open = "5"
-svg2pdf = "0.13"
 usvg = "0.45"
-pdf-writer = "0.12"
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider"] }
+tokio = { version = "1", features = ["sync", "macros", "parking_lot"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt"] }
+
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.38"
+windows-core = "0.61"
+windows = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Dwm", "Win32_Security_Credentials"] }
+
+[patch.crates-io]
+# Use upstream's vendored svg2pdf fixes for deterministic ordering and PDF rendering.
+svg2pdf = { path = "../../../third_party/rhwp/vendor/svg2pdf" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSDocumentController"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSURL"] }
+
+[profile.release]
+# 속도 우선: 전체 LTO + 단일 코드젠 유닛으로 엔진 호출 경로를 최적화한다
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = "symbols"

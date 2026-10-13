@@ -1,6 +1,6 @@
-# HOP 개발하기
+# YHWP 개발하기
 
-이 문서는 HOP를 로컬에서 실행하거나 수정할 때 필요한 기본 정보를 정리합니다.
+이 문서는 YHWP를 로컬에서 실행하거나 수정할 때 필요한 기본 정보를 정리합니다.
 
 ## 빠른 시작
 
@@ -20,13 +20,13 @@ pnpm run build:studio
 데스크톱 앱을 개발 모드로 실행합니다.
 
 ```sh
-pnpm --filter hop-desktop dev
+pnpm --filter yhwp-desktop dev
 ```
 
 debug 번들을 만들 때는 다음 명령을 사용합니다.
 
 ```sh
-pnpm --filter hop-desktop tauri build --debug --bundles app
+pnpm --filter yhwp-desktop tauri build --debug --bundles app
 ```
 
 ## 프로젝트 구조
@@ -34,7 +34,7 @@ pnpm --filter hop-desktop tauri build --debug --bundles app
 ```text
 apps/
   desktop/       Tauri 2 데스크톱 앱
-  studio-host/   upstream rhwp-studio 위에 얹는 HOP overlay
+  studio-host/   upstream rhwp-studio 위에 얹는 YHWP overlay
 third_party/
   rhwp/          read-only upstream submodule
 assets/          아이콘, 폰트, 스크린샷
@@ -42,11 +42,11 @@ docs/            스펙, 아키텍처, 운영 문서
 scripts/         유지보수 스크립트
 ```
 
-HOP 전용 동작은 `apps/desktop`과 `apps/studio-host`에 둡니다. `third_party/rhwp`는 upstream submodule로 유지하고, HOP 제품 기능 때문에 직접 수정하지 않는 것을 원칙으로 합니다.
+YHWP 전용 동작은 `apps/desktop`과 `apps/studio-host`에 둡니다. `third_party/rhwp`는 upstream submodule로 유지하고, YHWP 제품 기능 때문에 직접 수정하지 않는 것을 원칙으로 합니다.
 
 ## rhwp와의 관계
 
-HOP는 `rhwp`의 문서 엔진과 웹 에디터를 기반으로 합니다. HOP가 맡는 부분은 데스크톱 앱에서 필요한 얇은 제품 레이어입니다.
+YHWP는 `rhwp`의 문서 엔진과 웹 에디터를 기반으로 합니다. YHWP가 맡는 부분은 데스크톱 앱에서 필요한 얇은 제품 레이어입니다.
 
 * Tauri 2 앱 셸
 * native menu와 파일 명령 연결
@@ -58,7 +58,7 @@ HOP는 `rhwp`의 문서 엔진과 웹 에디터를 기반으로 합니다. HOP�
 * 새 창 생성과 창별 drag/drop 처리
 * GitHub Actions 기반 desktop build/release 초안
 
-upstream이 업데이트되면 submodule pointer를 올리고, HOP overlay에서 필요한 호환성만 조정하는 구조를 목표로 합니다.
+upstream이 업데이트되면 submodule pointer를 올리고, YHWP overlay에서 필요한 호환성만 조정하는 구조를 목표로 합니다.
 
 ## 아직 준비 중인 부분
 
@@ -66,7 +66,7 @@ public beta 전까지는 아래 항목이 더 필요합니다.
 
 * HWPX 저장은 아직 막아 두었습니다. HWPX 열기는 가능하지만, 안전한 HWPX serializer가 준비되기 전까지 저장은 지원하지 않습니다.
 * autosave/recovery는 아직 없습니다.
-* 외부 파일 변경 감지는 아직 없습니다.
+* 외부 파일 변경은 저장 전에 감지하고 충돌 확인을 거칩니다.
 * 큰 문서에서는 현재 WASM mirror를 거치는 구간이 있어 native-authoritative 구조로 더 개선해야 합니다.
 * signing, notarization, updater manifest는 배포 자격증명이 준비된 뒤 활성화할 예정입니다.
 
@@ -107,10 +107,12 @@ pnpm run clippy:desktop
 upstream 갱신:
 
 ```sh
-RUN_CHECKS=1 scripts/update-upstream.sh
+pnpm upstream:update -- vX.Y.Z
+pnpm upstream:verify
 ```
 
 ## 관련 문서
 
 * [upstream 경계와 업데이트 방식](architecture/UPSTREAM.md)
+* [rhwp 업데이트 운영 매뉴얼](operations/RHWP_UPDATE.md)
 * [데스크톱 릴리즈 노트](operations/DESKTOP_RELEASE.md)

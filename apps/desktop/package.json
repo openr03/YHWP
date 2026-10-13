@@ -1,12 +1,12 @@
 {
   "name": "yhwp-desktop",
-  "version": "0.1.23",
+  "version": "0.2.0",
   "private": true,
-  "description": "YHWP - 오픈소스 HWP/HWPX 데스크톱 앱",
+  "description": "YHWP - Open HWP desktop app",
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
-    "build": "tauri build",
+    "build": "tauri build --debug --bundles app",
     "tauri": "tauri"
   },
   "devDependencies": {

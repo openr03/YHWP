@@ -3,14 +3,12 @@
     "windows": [
       {
         "label": "main",
-        "title": "",
+        "title": "YHWP",
         "url": "index.html",
         "width": 1280,
         "height": 900,
         "minWidth": 960,
         "minHeight": 720,
-        "center": true,
-        "backgroundColor": "#f0f0f0",
         "zoomHotkeysEnabled": true
       }
     ]

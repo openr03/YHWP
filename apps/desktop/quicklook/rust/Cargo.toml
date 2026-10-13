@@ -1,0 +1,25 @@
+[package]
+name = "yhwp-quicklook-ffi"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "yhwp_quicklook_ffi"
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+base64 = "0.22"
+pdf-writer = "0.12"
+yhwp-rhwp-adapter = { path = "../../rhwp-adapter" }
+serde_json = "1"
+svg2pdf = "0.13"
+usvg = "0.45"
+
+[patch.crates-io]
+# Keep Quick Look PDF output on the same upstream svg2pdf source as the desktop app.
+svg2pdf = { path = "../../../../third_party/rhwp/vendor/svg2pdf" }
+
+[features]
+default = []
+native-skia = ["yhwp-rhwp-adapter/native-skia"]

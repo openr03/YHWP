@@ -1,0 +1,163 @@
+/* ── 문서 탭 (상태 표시줄 위, 한컴식 아래쪽 시트 탭) ── */
+#doc-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 6px;
+  border-top: 1px solid var(--ui-border-subtle, var(--ui-border));
+  background: var(--ui-bg);
+}
+.doc-tabs-list {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.doc-tabs-list::-webkit-scrollbar {
+  display: none;
+}
+.doc-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 96px;
+  max-width: 220px;
+  height: 27px;
+  margin-top: -1px;
+  padding: 0 5px 0 10px;
+  border: 1px solid transparent;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  cursor: default;
+  user-select: none;
+  flex-shrink: 0;
+  transition: background-color 0.12s, color 0.12s;
+}
+/* 비활성 탭 사이 가는 구분선 */
+.doc-tab + .doc-tab::before {
+  position: absolute;
+  top: 7px;
+  bottom: 8px;
+  left: -1px;
+  width: 1px;
+  background: var(--ui-border-subtle, var(--ui-border));
+  content: '';
+}
+.doc-tab.active::before,
+.doc-tab.active + .doc-tab::before,
+.doc-tab:hover::before,
+.doc-tab:hover + .doc-tab::before {
+  opacity: 0;
+}
+.doc-tab:hover {
+  background: var(--ui-hover);
+  color: var(--ui-text);
+}
+.doc-tab.active {
+  z-index: 1;
+  border-color: var(--ui-border-subtle, var(--ui-border));
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--yhwp-brand, var(--accent-primary)), 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+.doc-tab-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--ui-text-hint, var(--ui-text-muted));
+}
+.doc-tab.active .doc-tab-icon {
+  color: var(--yhwp-brand, var(--accent-primary));
+}
+.doc-tab-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.doc-tab-dirty {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--yhwp-warning);
+  flex-shrink: 0;
+}
+.doc-tab-dirty[hidden] {
+  display: none;
+}
+.doc-tab-close,
+.doc-tab-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ui-text-hint, var(--ui-text-muted));
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.doc-tab-close {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  opacity: 0;
+}
+.doc-tab:hover .doc-tab-close,
+.doc-tab.active .doc-tab-close {
+  opacity: 1;
+}
+.doc-tab-close:hover {
+  background: var(--ui-active, var(--ui-hover));
+  color: var(--ui-text);
+}
+.doc-tab-add {
+  align-self: center;
+  width: 26px;
+  height: 24px;
+  margin-top: -2px;
+  border-radius: 6px;
+}
+.doc-tab-add:hover {
+  background: var(--ui-hover);
+  color: var(--yhwp-brand, var(--accent-primary));
+}
+.doc-tab-menu {
+  position: fixed;
+  z-index: 10002;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  padding: 4px;
+  border: 1px solid var(--ui-border-light, var(--ui-border));
+  border-radius: 8px;
+  background: var(--ui-surface);
+  box-shadow: var(--shadow-dropdown);
+}
+.doc-tab-menu button {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ui-text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.doc-tab-menu button:hover:not(:disabled) {
+  background: var(--ui-selected);
+}
+.doc-tab-menu button:disabled {
+  color: var(--ui-text-hint);
+  cursor: default;
+}

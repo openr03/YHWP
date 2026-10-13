@@ -1,0 +1,686 @@
+diff --git a/src/model/table.rs b/src/model/table.rs
+index 406dd1b2..29c41365 100644
+--- a/src/model/table.rs
++++ b/src/model/table.rs
+@@ -697,12 +697,17 @@ impl Table {
+         if col_count == 0 || self.common.width == 0 {
+             return invalid;
+         }
+-        for row in 0..self.row_count {
+-            let mut cells = self
+-                .cells
+-                .iter()
+-                .filter(|cell| cell.row == row && cell.row_span == 1)
+-                .collect::<Vec<_>>();
++        // 성능(#2063): 행마다 전체 셀을 훑던 O(행×셀) 필터 대신 셀을 한 번만 행별로
++        // 나눈다. 행 안의 원래 셀 순서를 보존하므로 아래 안정 정렬 결과도 같다.
++        let mut cells_by_row: Vec<Vec<&Cell>> = vec![Vec::new(); usize::from(self.row_count)];
++        for cell in self.cells.iter() {
++            if cell.row_span == 1 {
++                if let Some(bucket) = cells_by_row.get_mut(usize::from(cell.row)) {
++                    bucket.push(cell);
++                }
++            }
++        }
++        for (row, mut cells) in (0..self.row_count).zip(cells_by_row) {
+             cells.sort_by_key(|cell| cell.col);
+             let mut next_col = 0usize;
+             let mut total = 0u64;
+@@ -774,6 +779,19 @@ impl Table {
+             }
+         }
+ 
++        // 성능(#2063 후속): 걸침 셀마다 0..=last 행을 다시 더하던 O(걸침셀×행) 대신
++        // 행 선언의 누적합과 첫 미지 행을 한 번만 구한다(정수 합이라 값이 같다).
++        let first_unknown = declared
++            .iter()
++            .position(Option::is_none)
++            .unwrap_or(row_count);
++        let mut known_prefix: Vec<u64> = Vec::with_capacity(first_unknown + 1);
++        known_prefix.push(0);
++        for h in declared.iter().take(first_unknown) {
++            let prev = *known_prefix.last().unwrap_or(&0);
++            known_prefix.push(prev + h.unwrap_or(0) as u64);
++        }
++
+         for cell in &self.cells {
+             let span = cell.row_span as usize;
+             let r = cell.row as usize;
+@@ -782,24 +800,13 @@ impl Table {
+             }
+             let last = r + span - 1;
+             // 걸친 행 합 — 미지 행이 있으면 기존 분배 규칙 담당.
+-            let mut span_sum: u64 = 0;
+-            let mut prefix_sum: u64 = 0;
+-            let mut all_known = true;
+-            for (i, h) in declared.iter().enumerate().take(last + 1) {
+-                match h {
+-                    Some(v) => {
+-                        prefix_sum += *v as u64;
+-                        if i >= r {
+-                            span_sum += *v as u64;
+-                        }
+-                    }
+-                    None => {
+-                        all_known = false;
+-                        break;
+-                    }
+-                }
++            let all_known = last < first_unknown;
++            if !all_known {
++                continue;
+             }
+-            if !all_known || span_sum <= cell.height as u64 {
++            let prefix_sum: u64 = known_prefix[last + 1];
++            let span_sum: u64 = known_prefix[last + 1] - known_prefix[r];
++            if span_sum <= cell.height as u64 {
+                 continue;
+             }
+             let deficit = span_sum - cell.height as u64;
+diff --git a/src/renderer/height_measurer.rs b/src/renderer/height_measurer.rs
+index 741096c0..39b2b5e8 100644
+--- a/src/renderer/height_measurer.rs
++++ b/src/renderer/height_measurer.rs
+@@ -4816,11 +4816,19 @@ impl HeightMeasurer {
+                 };
+             }
+         }
++        // 성능(#2063 후속): 측정 셀마다 전체 셀을 `find` 하던 O(셀²) 대신 (row, col) →
++        // 첫 셀 색인을 한 번 만든다. `or_insert` 로 첫 일치만 남겨 `find` 와 같은 셀을 고른다.
++        let mut first_cell_at: std::collections::HashMap<(usize, usize), usize> =
++            std::collections::HashMap::with_capacity(table.cells.len());
++        for (idx, c) in table.cells.iter().enumerate() {
++            first_cell_at
++                .entry((c.row as usize, c.col as usize))
++                .or_insert(idx);
++        }
+         for mc in &mut measured_cells {
+-            let Some(cell) = table
+-                .cells
+-                .iter()
+-                .find(|c| c.row as usize == mc.row && c.col as usize == mc.col)
++            let Some(cell) = first_cell_at
++                .get(&(mc.row, mc.col))
++                .and_then(|&idx| table.cells.get(idx))
+             else {
+                 continue;
+             };
+diff --git a/src/renderer/layout.rs b/src/renderer/layout.rs
+index 6ee65a45..31f38c76 100644
+--- a/src/renderer/layout.rs
++++ b/src/renderer/layout.rs
+@@ -3657,6 +3657,13 @@ pub struct LayoutEngine {
+     /// 보유 여부)의 표 포인터 키 메모 — 거대 표 서브트리 재스캔 방지.
+     /// `cell_units_cache` 와 동일 조판 경계에서 clear 한다.
+     cursor_probe_block_cache: std::cell::RefCell<std::collections::HashMap<usize, bool>>,
++    /// 성능(#2063 후속): 표 셀의 행 색인. `cell_units_cache` 와 동일 조판 경계에서 clear 한다.
++    table_row_index_cache: std::cell::RefCell<
++        std::collections::HashMap<
++            table_row_index::TableRowIndexKey,
++            std::sync::Arc<table_row_index::TableRowIndex>,
++        >,
++    >,
+     /// [#4149] Derived verdict keyed by source paragraph identity and actual
+     /// cell width. This lives for the layout session and is cleared at the same
+     /// source/style invalidation boundary as the other pointer-keyed caches.
+@@ -3675,6 +3682,7 @@ mod shape_layout;
+ mod table_cell_content;
+ pub(crate) mod table_layout;
+ mod table_partial;
++mod table_row_index;
+ mod text_measurement;
+ mod utils;
+ 
+@@ -3780,6 +3788,7 @@ impl LayoutEngine {
+             cell_units_cache: std::cell::RefCell::new(std::collections::HashMap::new()),
+             table_nested_text_flag_cache: std::cell::RefCell::new(std::collections::HashMap::new()),
+             cursor_probe_block_cache: std::cell::RefCell::new(std::collections::HashMap::new()),
++            table_row_index_cache: std::cell::RefCell::new(std::collections::HashMap::new()),
+             single_line_overflow_cache: Default::default(),
+             #[cfg(test)]
+             table_nested_text_flag_scan_count: std::cell::Cell::new(0),
+@@ -3792,6 +3801,7 @@ impl LayoutEngine {
+         self.cell_units_cache.borrow_mut().clear();
+         self.table_nested_text_flag_cache.borrow_mut().clear();
+         self.cursor_probe_block_cache.borrow_mut().clear();
++        self.table_row_index_cache.borrow_mut().clear();
+         self.single_line_overflow_cache.clear();
+     }
+ 
+diff --git a/src/renderer/layout/table_layout.rs b/src/renderer/layout/table_layout.rs
+index 53604442..31e7b839 100644
+--- a/src/renderer/layout/table_layout.rs
++++ b/src/renderer/layout/table_layout.rs
+@@ -4028,10 +4028,8 @@ impl LayoutEngine {
+         table: &crate::model::table::Table,
+         row: usize,
+     ) -> bool {
+-        table
+-            .cells
+-            .iter()
+-            .filter(|cell| cell.row as usize == row && cell.row_span == 1)
++        self.cells_starting_in_row(table, row)
++            .filter(|cell| cell.row_span == 1)
+             .any(|cell| {
+                 cell.paragraphs.iter().any(|para| {
+                     para.line_segs.windows(2).any(|pair| {
+@@ -4939,9 +4937,8 @@ impl LayoutEngine {
+         table: &crate::model::table::Table,
+         row: usize,
+     ) -> bool {
+-        let row_has_nested = table.cells.iter().any(|cell| {
+-            cell.row as usize == row
+-                && cell.row_span == 1
++        let row_has_nested = self.cells_starting_in_row(table, row).any(|cell| {
++            cell.row_span == 1
+                 && cell.paragraphs.iter().any(|paragraph| {
+                     paragraph
+                         .controls
+@@ -4955,16 +4952,12 @@ impl LayoutEngine {
+                 .render_normalization
+                 .borrow()
+                 .table_text_reflowed(table)
+-            && table
+-                .cells
+-                .iter()
+-                .filter(|cell| cell.row as usize == row)
+-                .all(|cell| {
+-                    cell.height > 0
+-                        && cell.height < 0x8000_0000
+-                        && Self::cell_has_stored_line_segs(cell)
+-                        && crate::renderer::cell_vpos_ladder_is_intact(&cell.paragraphs)
+-                });
++            && self.cells_starting_in_row(table, row).all(|cell| {
++                cell.height > 0
++                    && cell.height < 0x8000_0000
++                    && Self::cell_has_stored_line_segs(cell)
++                    && crate::renderer::cell_vpos_ladder_is_intact(&cell.paragraphs)
++            });
+         !row_has_nested
+             // Complete reflow rows own their measured physical frame, including
+             // the intentional empty line after a nested table. Interior cuts
+@@ -4976,9 +4969,8 @@ impl LayoutEngine {
+                     table.page_break,
+                     crate::model::table::TablePageBreak::RowBreak
+                 )
+-                && table.cells.iter().any(|cell| {
+-                    cell.row as usize == row
+-                        && cell.row_span == 1
++                && self.cells_starting_in_row(table, row).any(|cell| {
++                    cell.row_span == 1
+                         && cell
+                             .paragraphs
+                             .iter()
+@@ -16537,11 +16529,7 @@ impl LayoutEngine {
+     ) -> Option<Vec<usize>> {
+         use crate::model::paragraph::LineSeg;
+ 
+-        let mut cells: Vec<_> = table
+-            .cells
+-            .iter()
+-            .filter(|cell| cell.row as usize == row)
+-            .collect();
++        let mut cells: Vec<_> = self.cells_starting_in_row(table, row).collect();
+         cells.sort_by_key(|cell| cell.col);
+         let mut cut = Vec::new();
+         let mut resumed = false;
+@@ -16826,7 +16814,8 @@ impl LayoutEngine {
+         avail_height: f64,
+         styles: &ResolvedStyleSet,
+     ) -> RowCutResult {
+-        let row_cells: Vec<&crate::model::table::Cell> = Self::row_cut_cell_order(table, row)
++        let row_cells: Vec<&crate::model::table::Cell> = self
++            .row_cut_cell_order_indexed(table, row)
+             .into_iter()
+             .filter_map(|idx| table.cells.get(idx))
+             .collect();
+@@ -17890,7 +17879,7 @@ impl LayoutEngine {
+             cells.sort_by_key(|cell| (cell.row, cell.col));
+             cells
+         } else {
+-            Self::row_cut_cell_order(table, row)
++            self.row_cut_cell_order_indexed(table, row)
+                 .into_iter()
+                 .filter_map(|index| table.cells.get(index))
+                 .collect()
+@@ -18627,7 +18616,8 @@ impl LayoutEngine {
+         let mut block_cells = Self::row_block_cells(table, b_start, b_end);
+         block_cells.sort_by_key(|c| (c.row, c.col));
+ 
+-        let row_cells: Vec<&crate::model::table::Cell> = Self::row_cut_cell_order(table, row)
++        let row_cells: Vec<&crate::model::table::Cell> = self
++            .row_cut_cell_order_indexed(table, row)
+             .into_iter()
+             .filter_map(|idx| table.cells.get(idx))
+             .collect();
+@@ -19560,7 +19550,8 @@ impl LayoutEngine {
+         end_cut: &[usize],
+         styles: &ResolvedStyleSet,
+     ) -> bool {
+-        let row_cells: Vec<&crate::model::table::Cell> = Self::row_cut_cell_order(table, row)
++        let row_cells: Vec<&crate::model::table::Cell> = self
++            .row_cut_cell_order_indexed(table, row)
+             .into_iter()
+             .filter_map(|idx| table.cells.get(idx))
+             .collect();
+@@ -20186,9 +20177,9 @@ impl LayoutEngine {
+             return None;
+         }
+         let (end_row, end_cut_is_empty) = fragment_end;
+-        table
+-            .cells
+-            .iter()
++        // 성능: 아래 조건 `cell_end == row + 1` 은 `row` 를 덮는 셀만 통과하므로
++        // 행 색인(원래 순서 보존)으로 후보를 먼저 좁힌다. 판정식은 그대로다.
++        self.cells_covering_row(table, row)
+             .filter(|cell| {
+                 let cell_row = cell.row as usize;
+                 let cell_end = cell_row + cell.row_span as usize;
+@@ -20238,13 +20229,7 @@ impl LayoutEngine {
+             .render_normalization
+             .borrow()
+             .table_text_reflowed(table);
+-        let mut cells = table
+-            .cells
+-            .iter()
+-            .filter(|cell| {
+-                cell.row as usize <= row && row < cell.row as usize + cell.row_span as usize
+-            })
+-            .peekable();
++        let mut cells = self.cells_covering_row(table, row).peekable();
+         cells.peek().is_some()
+             && cells.all(|cell| {
+                 cell.row_span == 1
+@@ -20290,7 +20275,8 @@ impl LayoutEngine {
+         end_cut: &[usize],
+         styles: &ResolvedStyleSet,
+     ) -> f64 {
+-        let row_cells: Vec<&crate::model::table::Cell> = Self::row_cut_cell_order(table, row)
++        let row_cells: Vec<&crate::model::table::Cell> = self
++            .row_cut_cell_order_indexed(table, row)
+             .into_iter()
+             .filter_map(|idx| table.cells.get(idx))
+             .collect();
+@@ -20300,11 +20286,7 @@ impl LayoutEngine {
+         // HeightMeasurer 가 이미 줄여 둔 행을 다시 부풀려(row_cut_h > mt.row_heights)
+         // 걸침 묶음이 쪽에 못 들어간다.
+         let declared_shrink = hwpunit_to_px(
+-            table
+-                .rowspan_declared_overflow_shrink()
+-                .get(row)
+-                .copied()
+-                .unwrap_or(0) as i32,
++            self.rowspan_declared_overflow_shrink_at(table, row) as i32,
+             self.dpi,
+         );
+         let mut max_h = 0.0f64;
+@@ -20660,7 +20642,8 @@ impl LayoutEngine {
+             // 이월되어 한컴보다 물리 쪽 수가 늘어난다.
+             return 0.0;
+         }
+-        let row_cells: Vec<&crate::model::table::Cell> = Self::row_cut_cell_order(table, row)
++        let row_cells: Vec<&crate::model::table::Cell> = self
++            .row_cut_cell_order_indexed(table, row)
+             .into_iter()
+             .filter_map(|idx| table.cells.get(idx))
+             .collect();
+diff --git a/src/renderer/layout/table_partial.rs b/src/renderer/layout/table_partial.rs
+index d7b7c9cb..62fd7836 100644
+--- a/src/renderer/layout/table_partial.rs
++++ b/src/renderer/layout/table_partial.rs
+@@ -4692,6 +4692,8 @@ impl LayoutEngine {
+         // 저장 HWP5의 반복 제목행을 가진 다행 RowBreak 표도 첫 저장 앵커와
+         // 다음 쪽에서 반복 제목행을 여는 조각마다 바깥 위 여백을 다시 둔다.
+         // 제목행 없는 이어지는 표(76076 34쪽)는 본문 상단에 붙는 별도 계약이다.
++        // 성능: 제목행 블록은 표 단위 값이므로 아래 셀 루프에서 셀마다 다시 구하지 않는다.
++        let leading_header_row_count = table.leading_header_rows().len();
+         let native_repeated_header_reopens_outer_top = self.profile.get().hwp5_stored_pagination_layout()
+                 && !table.common.treat_as_char
+                 && matches!(
+@@ -4700,12 +4702,12 @@ impl LayoutEngine {
+                 )
+                 && table.row_count > 1
+                 && table.repeat_header
+-                && !table.leading_header_rows().is_empty()
++                && leading_header_row_count > 0
+                 // 이 보정은 반복 제목행 바로 뒤에서 표 끝까지 걸친 가운데
+                 // 정렬 셀의 저장 물리 높이를 두 조각에 나누는 경우에만 필요하다.
+                 // 일반 83행 교육 표까지 열면 다른 조각이 본문 아래로 밀린다.
+                 && table.cells.iter().any(|cell| {
+-                    cell.row as usize == table.leading_header_rows().len()
++                    cell.row as usize == leading_header_row_count
+                         && cell.row_span > 1
+                         && cell.row as usize + cell.row_span as usize == table.row_count as usize
+                         && matches!(
+@@ -4793,11 +4795,7 @@ impl LayoutEngine {
+                 if r >= row_count {
+                     continue;
+                 }
+-                let rowspan_touched = table.cells.iter().any(|c| {
+-                    c.row_span > 1
+-                        && (c.row as usize) <= r
+-                        && r < c.row as usize + c.row_span as usize
+-                });
++                let rowspan_touched = self.cells_covering_row(table, r).any(|c| c.row_span > 1);
+                 if start_cut_is_block || is_block_split {
+                     // 시작/끝 컷은 독립적인 공간이다. 행 공간 컷을 블록 전체의
+                     // 높이로 해석하면 이미 소비한 rowspan 내용을 다시 예약한다.
+diff --git a/src/renderer/typeset.rs b/src/renderer/typeset.rs
+index cd568632..af9f37c5 100755
+--- a/src/renderer/typeset.rs
++++ b/src/renderer/typeset.rs
+@@ -1821,25 +1821,28 @@ fn rowbreak_row_has_internal_saved_vpos_reset(
+         .cells
+         .iter()
+         .filter(|cell| cell.row as usize == row)
+-        .any(|cell| {
+-            // 저장된 물리 page reset은 cell paragraph 경계에서 시작할 수도 있다. 각
+-            // paragraph 안의 `windows(2)`만 보면 `<OPTN>` 다음 `간 특수 검사`처럼
+-            // p[n]의 마지막 LINE_SEG → p[n+1]의 첫 LINE_SEG reset을 놓친다.
+-            let mut previous_vpos = None;
+-            for para in &cell.paragraphs {
+-                for seg in para
+-                    .line_segs
+-                    .iter()
+-                    .filter(|seg| !is_synthetic_line_seg(seg))
+-                {
+-                    if previous_vpos.is_some_and(|previous| previous > 0 && seg.vertical_pos <= 0) {
+-                        return true;
+-                    }
+-                    previous_vpos = Some(seg.vertical_pos);
+-                }
++        .any(cell_has_internal_saved_vpos_reset)
++}
++
++/// 셀 하나의 문단 줄에 저장된 `양수 vpos → 0 이하` 되감김이 있는지 판별한다.
++fn cell_has_internal_saved_vpos_reset(cell: &crate::model::table::Cell) -> bool {
++    // 저장된 물리 page reset은 cell paragraph 경계에서 시작할 수도 있다. 각
++    // paragraph 안의 `windows(2)`만 보면 `<OPTN>` 다음 `간 특수 검사`처럼
++    // p[n]의 마지막 LINE_SEG → p[n+1]의 첫 LINE_SEG reset을 놓친다.
++    let mut previous_vpos = None;
++    for para in &cell.paragraphs {
++        for seg in para
++            .line_segs
++            .iter()
++            .filter(|seg| !is_synthetic_line_seg(seg))
++        {
++            if previous_vpos.is_some_and(|previous| previous > 0 && seg.vertical_pos <= 0) {
++                return true;
+             }
+-            false
+-        })
++            previous_vpos = Some(seg.vertical_pos);
++        }
++    }
++    false
+ }
+ 
+ /// [#7288] «쪽 경계에서» 값 0 «나누지 않음» 의 **원자 규칙**을 이 표에 걸 수 있는가.
+@@ -1894,7 +1897,14 @@ pub(in crate::renderer) fn cell_unit_row_is_atomic_here(
+ 
+ /// RowBreak 표 셀 안에 저장된 vpos reset이 있는지 판별한다.
+ fn rowbreak_table_has_internal_saved_vpos_reset(table: &crate::model::table::Table) -> bool {
+-    (0..table.row_count as usize).any(|row| rowbreak_row_has_internal_saved_vpos_reset(table, row))
++    // 성능(#2063): 행마다 전체 셀을 다시 훑던 O(행×셀) 스캔을 셀 1회 순회로 바꾼다.
++    // `(0..row_count).any(|row| 그 행 셀 중 하나라도 reset)` 과 같은 값이다.
++    let row_count = table.row_count as usize;
++    table
++        .cells
++        .iter()
++        .filter(|cell| (cell.row as usize) < row_count)
++        .any(cell_has_internal_saved_vpos_reset)
+ }
+ 
+ /// Whether every text-bearing cell proves, through its stored line segments,
+diff --git a/src/renderer/typeset/table/block/prepare.rs b/src/renderer/typeset/table/block/prepare.rs
+index 0484155b..f2c6e350 100644
+--- a/src/renderer/typeset/table/block/prepare.rs
++++ b/src/renderer/typeset/table/block/prepare.rs
+@@ -85,11 +85,9 @@ impl TypesetEngine {
+         // §4대로 rowspan 행은 MeasuredTable 행 높이를 권위로 쓴다(렌더러도 동일).
+         let rowspan_touched: Vec<bool> = (0..row_count)
+             .map(|r| {
+-                row_geometry_table.cells.iter().any(|c| {
+-                    c.row_span > 1
+-                        && (c.row as usize) <= r
+-                        && r < c.row as usize + c.row_span as usize
+-                })
++                layout_engine
++                    .cells_covering_row(row_geometry_table, r)
++                    .any(|c| c.row_span > 1)
+             })
+             .collect();
+         // [Task #993/#1022] 행별 전체 높이(fresh, 빈 컷). HeightMeasurer 와 정합된
+@@ -109,22 +107,22 @@ impl TypesetEngine {
+             {
+                 return false;
+             }
+-            row_geometry_table.cells.iter().any(|cell| {
+-                cell.row as usize == row
+-                    && cell.row_span == 1
+-                    && cell.paragraphs.iter().enumerate().any(|(para_idx, para)| {
+-                        para.controls.iter().enumerate().any(|(control_idx, _)| {
+-                            stored_square_picture_has_adjacent_text(cell, para_idx, control_idx)
++            layout_engine
++                .cells_starting_in_row(row_geometry_table, row)
++                .any(|cell| {
++                    cell.row_span == 1
++                        && cell.paragraphs.iter().enumerate().any(|(para_idx, para)| {
++                            para.controls.iter().enumerate().any(|(control_idx, _)| {
++                                stored_square_picture_has_adjacent_text(cell, para_idx, control_idx)
++                            })
+                         })
+-                    })
+-            })
++                })
+         };
+         let cut_row_h: Vec<f64> = (0..row_count)
+             .map(|r| {
+-                let has_single_row_cells = row_geometry_table
+-                    .cells
+-                    .iter()
+-                    .any(|c| c.row as usize == r && c.row_span == 1);
++                let has_single_row_cells = layout_engine
++                    .cells_starting_in_row(row_geometry_table, r)
++                    .any(|c| c.row_span == 1);
+                 let row_cut_h = if row_has_stored_square_picture_flow(r) {
+                     // native HWP5 RowBreak stores the adjacent text LINE_SEG ladder as
+                     // the authoritative row height. Recomputing this whole row from
+diff --git a/src/renderer/typeset/table/continuation/fragment/budget.rs b/src/renderer/typeset/table/continuation/fragment/budget.rs
+index 18464e15..775e55ca 100644
+--- a/src/renderer/typeset/table/continuation/fragment/budget.rs
++++ b/src/renderer/typeset/table/continuation/fragment/budget.rs
+@@ -924,18 +924,15 @@ impl TypesetEngine {
+             exact_source_row_end.map_or(scan_row_count, |end| scan_row_count.min(end));
+         // [#6123] 저장 행 높이(행 안 row_span==1 셀의 최대 저장 높이). 프레임
+         // 바닥이 진짜 행 경계인지 저장 좌표계에서 검산하는 데 쓴다.
+-        let stored_row_heights: Vec<f64> = (0..row_count)
+-            .map(|row| {
+-                table
+-                    .cells
+-                    .iter()
+-                    .filter(|cell| {
+-                        cell.row as usize == row && cell.row_span == 1 && cell.height < 0x8000_0000
+-                    })
+-                    .map(|cell| hwpunit_to_px(cell.height as i32, self.dpi))
+-                    .fold(0.0f64, f64::max)
+-            })
+-            .collect();
++        // 성능(#2063): 행마다 전체 셀을 훑던 O(행×셀) 대신 셀 1회 순회로 행별 최대값을 모은다.
++        let mut stored_row_heights: Vec<f64> = vec![0.0f64; row_count];
++        for cell in table.cells.iter() {
++            let row = cell.row as usize;
++            if row < row_count && cell.row_span == 1 && cell.height < 0x8000_0000 {
++                stored_row_heights[row] =
++                    stored_row_heights[row].max(hwpunit_to_px(cell.height as i32, self.dpi));
++            }
++        }
+         let source_first_fragment_row_end =
+             saved_first_fragment_source_frame.and_then(|(frame_height, _)| {
+                 nearest_saved_rowbreak_frame_row_end(
+diff --git a/src/renderer/layout/table_row_index.rs b/src/renderer/layout/table_row_index.rs
+new file mode 100644
+index 00000000..ae6e0c94
+--- /dev/null
++++ b/src/renderer/layout/table_row_index.rs
+@@ -0,0 +1,160 @@
++//! 표 셀의 행 색인 (성능 #2063 후속).
++//!
++//! 표 레이아웃·조판의 많은 행 단위 판정이 `table.cells.iter().filter(|c| c.row == row)`
++//! 처럼 **행마다 전체 셀을 다시 훑는다**. 행 루프·페이지 루프 안에서 불리면
++//! O(행×셀)(5,277행×52,694셀 표에서 수억 회)로 폭증한다.
++//!
++//! 이 색인은 셀 배열을 한 번만 훑어 행별 셀 인덱스를 **원래 셀 순서 그대로** 모은다.
++//! 따라서 `filter(row == r)` 를 이 색인으로 바꿔도 순회 순서·결과가 바이트 단위로 같다.
++//! `LayoutEngine` 의 다른 포인터 키 캐시(`cell_units_cache` 등)와 같은 조판 경계
++//! (`clear_layout_caches`)에서 비우며, 키에 셀 배열 포인터·길이·행 수를 함께 넣어
++//! 경계 밖의 구조 편집(행 추가/삭제·병합)도 자동으로 놓치지 않게 한다.
++
++use std::sync::Arc;
++
++use super::LayoutEngine;
++use crate::model::table::{Cell, Table};
++
++/// 행별 셀 인덱스 색인.
++#[derive(Debug, Default)]
++pub(crate) struct TableRowIndex {
++    /// `starts[r]` = `cell.row == r` 인 셀 인덱스(원래 순서).
++    starts: Vec<Vec<u32>>,
++    /// `covers[r]` = `cell.row <= r < cell.row + cell.row_span` 인 셀 인덱스(원래 순서).
++    /// 손상 문서의 거대 row_span 으로 메모리가 폭증하면 만들지 않는다(None → 선형 폴백).
++    covers: Option<Vec<Vec<u32>>>,
++    /// `Table::rowspan_declared_overflow_shrink()` 결과(지연 계산). 셀 높이에 의존하지만
++    /// `cell_units_cache` 도 같은 경계 안에서 셀 높이 불변을 전제하므로 같은 수명을 쓴다.
++    rowspan_shrink: std::sync::OnceLock<Vec<crate::model::HwpUnit>>,
++}
++
++/// 색인 캐시 키: (표 포인터, 셀 배열 포인터, 셀 수, 행 수).
++pub(crate) type TableRowIndexKey = (usize, usize, usize, u16);
++
++impl TableRowIndex {
++    fn build(table: &Table) -> Self {
++        let max_start = table
++            .cells
++            .iter()
++            .map(|cell| cell.row as usize + 1)
++            .max()
++            .unwrap_or(0);
++        let rows = max_start.max(table.row_count as usize);
++        let mut starts: Vec<Vec<u32>> = vec![Vec::new(); max_start];
++        let mut cover_entries = 0usize;
++        for (idx, cell) in table.cells.iter().enumerate() {
++            starts[cell.row as usize].push(idx as u32);
++            let end = (cell.row as usize + cell.row_span as usize).min(rows);
++            cover_entries += end.saturating_sub(cell.row as usize);
++        }
++        // 정상 표는 셀당 row_span 합이 셀 수의 몇 배를 넘지 않는다.
++        let cover_budget = table.cells.len().saturating_mul(8).max(1 << 16);
++        let covers = (cover_entries <= cover_budget).then(|| {
++            let mut covers: Vec<Vec<u32>> = vec![Vec::new(); rows];
++            for (idx, cell) in table.cells.iter().enumerate() {
++                let start = cell.row as usize;
++                let end = (start + cell.row_span as usize).min(rows);
++                for bucket in covers.iter_mut().take(end).skip(start) {
++                    bucket.push(idx as u32);
++                }
++            }
++            covers
++        });
++        Self {
++            starts,
++            covers,
++            rowspan_shrink: std::sync::OnceLock::new(),
++        }
++    }
++
++    /// `cell.row == row` 인 셀 인덱스(원래 순서). 범위 밖이면 빈 슬라이스.
++    pub(crate) fn starting(&self, row: usize) -> &[u32] {
++        self.starts.get(row).map(Vec::as_slice).unwrap_or(&[])
++    }
++
++    /// `cell.row <= row < cell.row + cell.row_span` 인 셀 인덱스(원래 순서).
++    /// 색인이 없거나 범위 밖이면 `None` — 호출부가 선형 스캔으로 폴백한다.
++    pub(crate) fn covering(&self, row: usize) -> Option<&[u32]> {
++        self.covers.as_ref()?.get(row).map(Vec::as_slice)
++    }
++}
++
++impl LayoutEngine {
++    /// `table.rowspan_declared_overflow_shrink()` 의 캐시 판. 행마다 호출되는 컷 높이
++    /// 계산이 표 전체를 매번 다시 훑지 않게 한다.
++    pub(crate) fn rowspan_declared_overflow_shrink_at(
++        &self,
++        table: &Table,
++        row: usize,
++    ) -> crate::model::HwpUnit {
++        let index = self.table_row_index(table);
++        index
++            .rowspan_shrink
++            .get_or_init(|| table.rowspan_declared_overflow_shrink())
++            .get(row)
++            .copied()
++            .unwrap_or(0)
++    }
++
++    /// `LayoutEngine::row_cut_cell_order` 의 색인 판 — 같은 순서를 돌려준다.
++    pub(crate) fn row_cut_cell_order_indexed(&self, table: &Table, row: usize) -> Vec<usize> {
++        let index = self.table_row_index(table);
++        let mut cells: Vec<(u16, usize)> = index
++            .starting(row)
++            .iter()
++            .map(|&idx| idx as usize)
++            .filter(|&idx| table.cells[idx].row_span == 1)
++            .map(|idx| (table.cells[idx].col, idx))
++            .collect();
++        cells.sort_by_key(|(col, _)| *col);
++        cells.into_iter().map(|(_, idx)| idx).collect()
++    }
++
++    /// 표의 행 색인(캐시). 같은 표·같은 셀 배열이면 한 번만 만든다.
++    pub(crate) fn table_row_index(&self, table: &Table) -> Arc<TableRowIndex> {
++        let key: TableRowIndexKey = (
++            table as *const Table as usize,
++            table.cells.as_ptr() as usize,
++            table.cells.len(),
++            table.row_count,
++        );
++        if let Some(cached) = self.table_row_index_cache.borrow().get(&key) {
++            return Arc::clone(cached);
++        }
++        let index = Arc::new(TableRowIndex::build(table));
++        self.table_row_index_cache
++            .borrow_mut()
++            .insert(key, Arc::clone(&index));
++        index
++    }
++
++    /// `table.cells.iter().filter(|c| c.row as usize == row)` 와 같은 순서의 셀들.
++    pub(crate) fn cells_starting_in_row<'a>(
++        &self,
++        table: &'a Table,
++        row: usize,
++    ) -> impl Iterator<Item = &'a Cell> + 'a {
++        let index = self.table_row_index(table);
++        let ids: Vec<u32> = index.starting(row).to_vec();
++        ids.into_iter().map(move |idx| &table.cells[idx as usize])
++    }
++
++    /// `table.cells.iter().filter(|c| c.row <= row && row < c.row + c.row_span)` 와 같은
++    /// 순서의 셀들.
++    pub(crate) fn cells_covering_row<'a>(
++        &self,
++        table: &'a Table,
++        row: usize,
++    ) -> Box<dyn Iterator<Item = &'a Cell> + 'a> {
++        let index = self.table_row_index(table);
++        match index.covering(row) {
++            Some(ids) => {
++                let ids = ids.to_vec();
++                Box::new(ids.into_iter().map(move |idx| &table.cells[idx as usize]))
++            }
++            None => Box::new(table.cells.iter().filter(move |cell| {
++                cell.row as usize <= row && row < cell.row as usize + cell.row_span as usize
++            })),
++        }
++    }
++}

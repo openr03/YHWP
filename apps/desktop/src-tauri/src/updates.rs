@@ -6,7 +6,7 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 
 use crate::state::AppState;
 
-const UPDATE_STATE_EVENT: &str = "hop-update-state";
+const UPDATE_STATE_EVENT: &str = "yhwp-update-state";
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq, Default)]

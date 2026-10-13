@@ -10,11 +10,74 @@ const MIN_EDITOR_WINDOW_HEIGHT: f64 = 720.0;
 const NEW_WINDOW_PREFERRED_WIDTH: f64 = 1100.0;
 const NEW_WINDOW_PREFERRED_HEIGHT: f64 = 760.0;
 const NEW_WINDOW_MAX_WORK_AREA_RATIO: f64 = 0.85;
+const NEW_WINDOW_WORK_AREA_MARGIN: f64 = 24.0;
+const NEW_WINDOW_FRAME_HEIGHT_RESERVE: f64 = 72.0;
 
+const SPARE_ACTIVATE_EVENT: &str = "yhwp-spare-activate";
+const SPARE_DELAY: std::time::Duration = std::time::Duration::from_millis(1500);
+
+/// 새 탭: 빈 새 문서를 연 편집 창을 지금 창의 탭으로 만든다.
+/// 미리 띄워 둔 숨은 창이 있으면 그 창에 새 문서만 만들어 곧바로 보인다.
 pub fn create_editor_window(app: &AppHandle) -> Result<String, String> {
+    if let Some(label) = activate_spare(app) {
+        schedule_spare(app);
+        return Ok(label);
+    }
     let label = new_editor_window_label();
-    create_editor_window_with_label(app, &label)?;
+    create_editor_window_at(app, &label, "index.html?new=1")?;
+    schedule_spare(app);
     Ok(label)
+}
+
+fn activate_spare(app: &AppHandle) -> Option<String> {
+    let label = crate::tabs::take_spare(app)?;
+    let window = app.get_webview_window(&label)?;
+    let beside = visible_editor_window_label(app);
+    crate::tabs::register_new_window(app, &label, beside.as_deref());
+    if let Some(beside) = beside.as_deref().and_then(|b| app.get_webview_window(b)) {
+        if let (Ok(pos), Ok(size)) = (beside.outer_position(), beside.inner_size()) {
+            let _ = window.set_position(pos);
+            let _ = window.set_size(size);
+        }
+    }
+    crate::tabs::queue_new_tab(app, &window);
+    let _ = window.emit_to(window.label(), SPARE_ACTIVATE_EVENT, ());
+    Some(label)
+}
+
+/// 다음 새 탭을 위한 숨은 창을 잠시 뒤에 미리 띄운다(이미 있으면 그대로).
+pub fn schedule_spare(app: &AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(SPARE_DELAY);
+        if crate::tabs::has_spare(&app) {
+            return;
+        }
+        if let Err(error) = create_spare_window(&app) {
+            eprintln!("[tabs] 새 탭 예비 창 준비 실패: {error}");
+        }
+    });
+}
+
+fn create_spare_window(app: &AppHandle) -> Result<(), String> {
+    let label = new_editor_window_label();
+    let geometry = new_window_geometry(app);
+    let window =
+        WebviewWindowBuilder::new(app, &label, WebviewUrl::App("index.html?spare=1".into()))
+            .title("YHWP")
+            .inner_size(geometry.width, geometry.height)
+            .min_inner_size(geometry.min_width, geometry.min_height)
+            .visible(false);
+    let window = window
+        .build()
+        .map_err(|e| format!("예비 창 생성 실패: {e}"))?;
+    install_editor_window_minimum_with_size(&window, geometry.min_width, geometry.min_height);
+    disable_browser_accelerator_keys(&window);
+    attach_document_drop_handler(app, &window);
+    attach_pending_open_cleanup(app, &window);
+    crate::tabs::disable_window_transitions(&window);
+    crate::tabs::set_spare(app, &label);
+    Ok(())
 }
 
 pub fn new_editor_window_label() -> String {
@@ -22,52 +85,135 @@ pub fn new_editor_window_label() -> String {
 }
 
 pub fn create_editor_window_with_label(app: &AppHandle, label: &str) -> Result<(), String> {
-    let (width, height) = new_window_size(app);
+    create_editor_window_at(app, label, "index.html")
+}
 
-    let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
-        .title("")
-        .inner_size(width, height)
-        .min_inner_size(MIN_EDITOR_WINDOW_WIDTH, MIN_EDITOR_WINDOW_HEIGHT)
-        .center();
+fn create_editor_window_at(app: &AppHandle, label: &str, page: &str) -> Result<(), String> {
+    let geometry = new_window_geometry(app);
+    // 지금 보이는 문서 창이 있으면 그 창의 탭으로 연다(같은 자리에 겹쳐 두고 전환)
+    let beside = visible_editor_window_label(app);
+    crate::tabs::register_new_window(app, label, beside.as_deref());
+
+    let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App(page.into()))
+        .title("YHWP")
+        .inner_size(geometry.width, geometry.height)
+        .min_inner_size(geometry.min_width, geometry.min_height)
+        .prevent_overflow_with_margin(Size::Logical(LogicalSize::new(
+            NEW_WINDOW_WORK_AREA_MARGIN,
+            NEW_WINDOW_WORK_AREA_MARGIN,
+        )));
+    let builder = if let Some((x, y)) = geometry.position {
+        builder.position(x, y)
+    } else {
+        builder.center()
+    };
     #[cfg(windows)]
     let builder = builder.zoom_hotkeys_enabled(true);
+    let builder = builder.visible(beside.is_none());
 
     let window = builder
         .build()
         .map_err(|e| format!("새 창 생성 실패: {}", e))?;
-    install_editor_window_minimum(&window);
+    install_editor_window_minimum_with_size(&window, geometry.min_width, geometry.min_height);
+    disable_browser_accelerator_keys(&window);
     attach_document_drop_handler(app, &window);
     attach_pending_open_cleanup(app, &window);
-    let _ = window.set_focus();
+    crate::tabs::disable_window_transitions(&window);
+    if beside.is_some() {
+        crate::tabs::queue_new_tab(app, &window);
+    } else {
+        let _ = window.set_focus();
+    }
 
     Ok(())
 }
 
-fn new_window_size(app: &AppHandle) -> (f64, f64) {
-    let (max_width, max_height) = active_monitor_logical_work_area(app)
-        .map(|(width, height)| {
-            (
-                (width * NEW_WINDOW_MAX_WORK_AREA_RATIO).floor(),
-                (height * NEW_WINDOW_MAX_WORK_AREA_RATIO).floor(),
-            )
+/// 탭을 붙일 기준 창: 포커스된 창, 없으면 보이는 첫 편집 창
+fn visible_editor_window_label(app: &AppHandle) -> Option<String> {
+    let windows = app.webview_windows();
+    windows
+        .iter()
+        .find(|(_, w)| w.is_focused().unwrap_or(false) && w.is_visible().unwrap_or(false))
+        .or_else(|| {
+            windows
+                .iter()
+                .find(|(_, w)| w.is_visible().unwrap_or(false))
         })
-        .unwrap_or((NEW_WINDOW_PREFERRED_WIDTH, NEW_WINDOW_PREFERRED_HEIGHT));
+        .map(|(label, _)| label.clone())
+}
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct NewWindowGeometry {
+    width: f64,
+    height: f64,
+    min_width: f64,
+    min_height: f64,
+    position: Option<(f64, f64)>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct LogicalWorkArea {
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+}
+
+fn new_window_geometry(app: &AppHandle) -> NewWindowGeometry {
+    new_window_geometry_for_work_area(active_monitor_logical_work_area(app))
+}
+
+fn new_window_geometry_for_work_area(work_area: Option<LogicalWorkArea>) -> NewWindowGeometry {
+    let Some(work_area) = work_area else {
+        return NewWindowGeometry {
+            width: NEW_WINDOW_PREFERRED_WIDTH,
+            height: NEW_WINDOW_PREFERRED_HEIGHT,
+            min_width: MIN_EDITOR_WINDOW_WIDTH,
+            min_height: MIN_EDITOR_WINDOW_HEIGHT,
+            position: None,
+        };
+    };
+
+    let usable_width = (work_area.width - NEW_WINDOW_WORK_AREA_MARGIN * 2.0).max(1.0);
+    let usable_height =
+        (work_area.height - NEW_WINDOW_WORK_AREA_MARGIN * 2.0 - NEW_WINDOW_FRAME_HEIGHT_RESERVE)
+            .max(1.0);
+    let max_width = (usable_width * NEW_WINDOW_MAX_WORK_AREA_RATIO).floor();
+    let max_height = (usable_height * NEW_WINDOW_MAX_WORK_AREA_RATIO).floor();
+
+    let width = clamped_new_window_dimension(
+        NEW_WINDOW_PREFERRED_WIDTH,
+        MIN_EDITOR_WINDOW_WIDTH,
+        max_width,
+    );
+    let height = clamped_new_window_dimension(
+        NEW_WINDOW_PREFERRED_HEIGHT,
+        MIN_EDITOR_WINDOW_HEIGHT,
+        max_height,
+    );
+    let min_width = MIN_EDITOR_WINDOW_WIDTH.min(width);
+    let min_height = MIN_EDITOR_WINDOW_HEIGHT.min(height);
+    let position = Some(centered_window_position(work_area, width, height));
+
+    NewWindowGeometry {
+        width,
+        height,
+        min_width,
+        min_height,
+        position,
+    }
+}
+
+fn centered_window_position(work_area: LogicalWorkArea, width: f64, height: f64) -> (f64, f64) {
     (
-        clamped_new_window_dimension(
-            NEW_WINDOW_PREFERRED_WIDTH,
-            MIN_EDITOR_WINDOW_WIDTH,
-            max_width,
-        ),
-        clamped_new_window_dimension(
-            NEW_WINDOW_PREFERRED_HEIGHT,
-            MIN_EDITOR_WINDOW_HEIGHT,
-            max_height,
-        ),
+        work_area.x + ((work_area.width - width) / 2.0).max(NEW_WINDOW_WORK_AREA_MARGIN),
+        work_area.y
+            + ((work_area.height - height - NEW_WINDOW_FRAME_HEIGHT_RESERVE) / 2.0)
+                .max(NEW_WINDOW_WORK_AREA_MARGIN),
     )
 }
 
-fn active_monitor_logical_work_area(app: &AppHandle) -> Option<(f64, f64)> {
+fn active_monitor_logical_work_area(app: &AppHandle) -> Option<LogicalWorkArea> {
     let monitor = target_window_label(app)
         .and_then(|label| app.get_webview_window(&label))
         .and_then(|window| window.current_monitor().ok().flatten())
@@ -77,21 +223,35 @@ fn active_monitor_logical_work_area(app: &AppHandle) -> Option<(f64, f64)> {
         return None;
     }
     let work_area = monitor.work_area();
-    Some((
-        f64::from(work_area.size.width) / scale_factor,
-        f64::from(work_area.size.height) / scale_factor,
-    ))
+    Some(LogicalWorkArea {
+        x: f64::from(work_area.position.x) / scale_factor,
+        y: f64::from(work_area.position.y) / scale_factor,
+        width: f64::from(work_area.size.width) / scale_factor,
+        height: f64::from(work_area.size.height) / scale_factor,
+    })
 }
 
 fn clamped_new_window_dimension(preferred: f64, min: f64, max: f64) -> f64 {
     if max <= 0.0 {
         return preferred.max(min);
     }
-    preferred.min(max).max(min)
+    preferred.min(max).max(min.min(max))
 }
 
 pub fn install_editor_window_minimum(window: &WebviewWindow) {
-    let minimum = LogicalSize::new(MIN_EDITOR_WINDOW_WIDTH, MIN_EDITOR_WINDOW_HEIGHT);
+    install_editor_window_minimum_with_size(
+        window,
+        MIN_EDITOR_WINDOW_WIDTH,
+        MIN_EDITOR_WINDOW_HEIGHT,
+    );
+}
+
+fn install_editor_window_minimum_with_size(
+    window: &WebviewWindow,
+    min_width: f64,
+    min_height: f64,
+) {
+    let minimum = LogicalSize::new(min_width, min_height);
     let _ = window.set_min_size(Some(Size::Logical(minimum)));
 }
 
@@ -108,7 +268,7 @@ pub fn attach_document_drop_handler(app: &AppHandle, window: &WebviewWindow) {
         }
         let _ = app.emit_to(
             label.as_str(),
-            "hop-open-paths",
+            "yhwp-open-paths",
             serde_json::json!({ "paths": paths }),
         );
     });
@@ -141,6 +301,29 @@ pub fn target_window_label(app: &AppHandle) -> Option<String> {
         .map(|(label, _)| label.clone())
         .or_else(|| windows.keys().next().cloned())
 }
+
+/// WebView2 의 브라우저 전용 단축키(F7 커서 브라우징, 브라우저 찾기 Ctrl+F, F5 새로고침 등)를 끈다.
+/// 한컴 단축키(F7 편집 용지 등)와 충돌하지 않게 하기 위함이며, 복사·붙여넣기·실행 취소 같은
+/// 편집 키와 페이지로 전달되는 키 이벤트는 그대로 유지된다.
+#[cfg(windows)]
+pub fn disable_browser_accelerator_keys(window: &WebviewWindow) {
+    let _ = window.with_webview(|webview| unsafe {
+        use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Settings3;
+        use windows_core::Interface;
+        let Ok(core) = webview.controller().CoreWebView2() else {
+            return;
+        };
+        let Ok(settings) = core.Settings() else {
+            return;
+        };
+        if let Ok(settings) = settings.cast::<ICoreWebView2Settings3>() {
+            let _ = settings.SetAreBrowserAcceleratorKeysEnabled(false);
+        }
+    });
+}
+
+#[cfg(not(windows))]
+pub fn disable_browser_accelerator_keys(_window: &WebviewWindow) {}
 
 #[cfg(test)]
 mod tests {
@@ -193,6 +376,54 @@ mod tests {
 
     #[test]
     fn clamped_new_window_dimension_keeps_minimum_on_small_screens() {
-        assert_eq!(clamped_new_window_dimension(1100.0, 720.0, 578.0), 720.0);
+        assert_eq!(clamped_new_window_dimension(1100.0, 720.0, 578.0), 578.0);
+    }
+
+    #[test]
+    fn new_window_geometry_uses_work_area_size_and_position() {
+        let geometry = new_window_geometry_for_work_area(Some(LogicalWorkArea {
+            x: 1200.0,
+            y: 40.0,
+            width: 1600.0,
+            height: 1000.0,
+        }));
+
+        assert_eq!(geometry.width, 1100.0);
+        assert_eq!(geometry.height, 748.0);
+        assert_eq!(geometry.min_width, 960.0);
+        assert_eq!(geometry.min_height, 720.0);
+        assert_eq!(geometry.position, Some((1450.0, 130.0)));
+    }
+
+    #[test]
+    fn new_window_geometry_stays_inside_small_work_area() {
+        let geometry = new_window_geometry_for_work_area(Some(LogicalWorkArea {
+            x: 0.0,
+            y: 0.0,
+            width: 1024.0,
+            height: 680.0,
+        }));
+
+        assert_eq!(geometry.width, 829.0);
+        assert_eq!(geometry.height, 476.0);
+        assert_eq!(geometry.min_width, 829.0);
+        assert_eq!(geometry.min_height, 476.0);
+        assert_eq!(geometry.position, Some((97.5, 66.0)));
+    }
+
+    #[test]
+    fn new_window_geometry_falls_back_without_monitor_data() {
+        let geometry = new_window_geometry_for_work_area(None);
+
+        assert_eq!(
+            geometry,
+            NewWindowGeometry {
+                width: 1100.0,
+                height: 760.0,
+                min_width: 960.0,
+                min_height: 720.0,
+                position: None,
+            }
+        );
     }
 }

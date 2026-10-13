@@ -89,6 +89,8 @@ function pageInfo(overrides: Partial<PageInfo> = {}): PageInfo {
     marginBottom: 0,
     marginHeader: 0,
     marginFooter: 0,
+    bodyLeft: 0,
+    bodyRight: 595,
     ...overrides,
   };
 }
@@ -179,6 +181,32 @@ describe('openPrintDialog', () => {
     expect(doc.renderPageSvg).toHaveBeenCalledWith(0);
     expect(doc.renderPageSvg).toHaveBeenCalledWith(1);
     expect(doc.renderPageSvg).toHaveBeenCalledWith(2);
+
+    const printRoot = fakeDocument.body.children.find((child) => child.id === 'yhwp-print-root');
+    expect(printRoot?.dataset.pageCount).toBe('3');
+    expect(printRoot?.children).toHaveLength(3);
+    expect(printRoot?.children.every((page) => (
+      page.className === 'yhwp-print-page'
+      && page.children.length === 1
+      && page.children[0]?.tagName.toLowerCase() === 'svg'
+    ))).toBe(true);
+  });
+
+  it('keeps print content just inside the physical page height', async () => {
+    const doc = {
+      fileName: 'test.hwp',
+      pageCount: 1,
+      getPageInfo: vi.fn(() => pageInfo({ width: 793.7, height: 1122.5 })),
+      renderPageSvg: vi.fn(() => '<svg></svg>'),
+    };
+
+    await openPrintDialog(doc, { print: printMock });
+
+    const printStyle = fakeDocument.head.children.find((child) => child.id === 'yhwp-print-style');
+    expect(printStyle?.textContent).toContain('@page { size: 210mm 297mm; margin: 0; }');
+    expect(printStyle?.textContent).toContain('height: calc(297mm - 0.1mm);');
+    expect(printStyle?.textContent).toContain('.yhwp-print-page:last-child');
+    expect(printStyle?.textContent).toContain('break-after: auto;');
   });
 
   it('rejects malformed SVG gracefully', async () => {
@@ -195,9 +223,9 @@ describe('openPrintDialog', () => {
 
     expect(doc.renderPageSvg).toHaveBeenCalledTimes(1);
 
-    const printRoot = fakeDocument.body.children.find((c) => c.id === 'hop-print-root');
+    const printRoot = fakeDocument.body.children.find((c) => c.id === 'yhwp-print-root');
     expect(printRoot).toBeDefined();
-    const pageDiv = printRoot!.children.find((c) => c.className === 'hop-print-page');
+    const pageDiv = printRoot!.children.find((c) => c.className === 'yhwp-print-page');
     expect(pageDiv).toBeDefined();
     expect(pageDiv!.children.length).toBe(0);
 

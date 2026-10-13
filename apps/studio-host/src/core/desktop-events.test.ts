@@ -11,6 +11,12 @@ vi.mock('@tauri-apps/api/event', () => ({
   listen: tauriListen,
 }));
 
+const tauriInvoke = vi.hoisted(() => vi.fn());
+
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: tauriInvoke,
+}));
+
 vi.mock('@tauri-apps/api/webviewWindow', () => ({
   getCurrentWebviewWindow: () => currentWindow,
 }));
@@ -66,12 +72,14 @@ describe('desktop events', () => {
       onUpdateState: vi.fn(),
     });
 
-    await windowHandlers.get('hop-open-paths')?.({
+    await windowHandlers.get('yhwp-open-paths')?.({
       payload: { paths: ['first.hwp', 'notes.txt'] },
     });
 
     expect(bridge.openDocumentByPath).toHaveBeenCalledWith('pending.HWP');
     expect(eventBus.emit).toHaveBeenCalledWith('desktop-document-loaded', loaded);
+    // 나머지 문서는 새 탭으로 연다 (지원하지 않는 파일은 뺀다)
+    expect(tauriInvoke).toHaveBeenCalledWith('tabs_open_paths', { paths: ['first.hwp'] });
   });
 
   it('reports unsupported dropped/opened paths without calling the bridge', async () => {
@@ -93,7 +101,7 @@ describe('desktop events', () => {
       onUpdateState: vi.fn(),
     });
 
-    await windowHandlers.get('hop-open-paths')?.({
+    await windowHandlers.get('yhwp-open-paths')?.({
       payload: { paths: ['readme.txt'] },
     });
 
@@ -148,7 +156,7 @@ describe('desktop events', () => {
       onUpdateState: vi.fn(),
     });
 
-    await windowHandlers.get('hop-menu-command')?.({ payload: 'file:save' });
+    await windowHandlers.get('yhwp-menu-command')?.({ payload: 'file:save' });
     const preventDefault = vi.fn();
     await getCloseHandler()?.({ preventDefault });
 
@@ -178,8 +186,8 @@ describe('desktop events', () => {
       onUpdateState: vi.fn(),
     });
 
-    await windowHandlers.get('hop-app-quit-requested')?.({ payload: null });
-    await windowHandlers.get('hop-app-quit-requested')?.({ payload: null });
+    await windowHandlers.get('yhwp-app-quit-requested')?.({ payload: null });
+    await windowHandlers.get('yhwp-app-quit-requested')?.({ payload: null });
 
     expect(bridge.destroyCurrentWindow).toHaveBeenCalledTimes(1);
     expect(bridge.cancelAppQuit).toHaveBeenCalledTimes(1);
@@ -281,7 +289,7 @@ describe('desktop events', () => {
       version: '0.1.3',
     });
 
-    await eventHandlers.get('hop-update-state')?.({
+    await eventHandlers.get('yhwp-update-state')?.({
       payload: { status: 'ready', version: '0.1.3' },
     });
 

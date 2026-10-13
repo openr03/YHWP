@@ -1,41 +1,39 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "YHWP",
-  "version": "0.1.23",
+  "version": "0.2.0",
   "identifier": "net.youngsam.yhwp",
   "build": {
     "beforeDevCommand": "cd ../.. && pnpm --filter @youngsam/yhwp-studio-host dev",
-    "beforeBuildCommand": "cd ../.. && pnpm --filter @youngsam/yhwp-studio-host build",
+    "beforeBuildCommand": "cd ../.. && pnpm run build:before-tauri",
     "devUrl": "http://127.0.0.1:7700",
     "frontendDist": "../../studio-host/dist"
   },
   "app": {
     "windows": [
       {
-        "title": "",
+        "title": "YHWP",
         "label": "main",
         "url": "index.html",
         "width": 1280,
         "height": 900,
         "minWidth": 960,
-        "minHeight": 720,
-        "backgroundColor": "#1a221d",
-        "center": true
+        "minHeight": 720
       }
     ],
     "security": {
-      "csp": "default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'none'; connect-src 'self' https://hwp.youngsam.net ipc: http://ipc.localhost; img-src 'self' data: blob: asset: http://asset.localhost https://hwp.youngsam.net; font-src 'self' data: asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; worker-src 'self' blob:",
-      "devCsp": "default-src 'self' http://127.0.0.1:7700 ws://127.0.0.1:7700; base-uri 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'none'; connect-src 'self' https://hwp.youngsam.net http://127.0.0.1:7700 ws://127.0.0.1:7700 ipc: http://ipc.localhost; img-src 'self' data: blob: asset: http://asset.localhost http://127.0.0.1:7700 https://hwp.youngsam.net; font-src 'self' data: asset: http://asset.localhost http://127.0.0.1:7700; style-src 'self' 'unsafe-inline' http://127.0.0.1:7700; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' http://127.0.0.1:7700; worker-src 'self' blob: http://127.0.0.1:7700"
+      "csp": "default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'none'; connect-src 'self' ipc: http://ipc.localhost; img-src 'self' data: blob: asset: http://asset.localhost; font-src 'self' data: asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; worker-src 'self' blob:",
+      "devCsp": "default-src 'self' http://127.0.0.1:7700 ws://127.0.0.1:7700; base-uri 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'none'; connect-src 'self' http://127.0.0.1:7700 ws://127.0.0.1:7700 ipc: http://ipc.localhost; img-src 'self' data: blob: asset: http://asset.localhost http://127.0.0.1:7700; font-src 'self' data: asset: http://asset.localhost http://127.0.0.1:7700; style-src 'self' 'unsafe-inline' http://127.0.0.1:7700; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' http://127.0.0.1:7700; worker-src 'self' blob: http://127.0.0.1:7700"
     }
   },
   "bundle": {
     "active": true,
     "targets": "all",
     "publisher": "youngsam.net",
-    "shortDescription": "오픈소스 HWP/HWPX 데스크톱 앱",
-    "longDescription": "YHWP는 한컴오피스 없이도 HWP/HWPX 문서를 열고 편집하고 PDF로 내보낼 수 있는 오픈소스 데스크톱 앱입니다. macOS, Windows, Linux 지원.",
+    "shortDescription": "Open desktop editor for HWP and HWPX documents",
+    "longDescription": "YHWP by youngsam.net — fast, private HWP/HWPX editor. YHWP opens, edits, saves, and exports HWP/HWPX documents.",
     "category": "Productivity",
-    "copyright": "Copyright (c) 2026 영삼넷 (youngsam.net)",
+    "copyright": "Copyright (c) 2026 영삼넷(youngsam.net). Based on rhwp and HOP (MIT).",
     "icon": [
       "../../../assets/logo/logo-32.png",
       "../../../assets/logo/logo-128.png",
@@ -44,20 +42,58 @@
       "../../../assets/logo/icon.icns",
       "../../../assets/logo/favicon.ico"
     ],
+    "resources": {
+      "../../../third_party/rhwp/ttfs/opensource/NotoSansKR-Regular.ttf": "fonts/pdf/NotoSansKR-Regular.ttf",
+      "../../../third_party/rhwp/ttfs/opensource/NotoSansKR-OFL.txt": "fonts/pdf/NotoSansKR-OFL.txt"
+    },
     "fileAssociations": [
       {
         "ext": ["hwp"],
         "name": "HWP Document",
         "description": "Hangul Word Processor document",
-        "mimeType": "application/x-hwp"
+        "mimeType": "application/x-hwp",
+        "role": "Editor",
+        "rank": "Owner",
+        "contentTypes": [
+          "net.youngsam.yhwp.hwp",
+          "com.hancom.hwp",
+          "com.haansoft.hancomofficeviewer.mac.hwp"
+        ],
+        "exportedType": {
+          "identifier": "net.youngsam.yhwp.hwp",
+          "conformsTo": ["public.data"]
+        }
       },
       {
         "ext": ["hwpx"],
         "name": "HWPX Document",
         "description": "Hangul Word Processor XML document",
-        "mimeType": "application/vnd.hancom.hwpx"
+        "mimeType": "application/vnd.hancom.hwpx",
+        "role": "Editor",
+        "rank": "Owner",
+        "contentTypes": [
+          "net.youngsam.yhwp.hwpx",
+          "com.hancom.hwpx",
+          "com.haansoft.hancomofficeviewer.mac.hwpx"
+        ],
+        "exportedType": {
+          "identifier": "net.youngsam.yhwp.hwpx",
+          "conformsTo": ["public.data", "public.zip-archive"]
+        }
       }
-    ]
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "files": {
+        "PlugIns/YhwpQuickLookPreview.appex": "target/quicklook/PlugIns/YhwpQuickLookPreview.appex",
+        "PlugIns/YhwpQuickLookThumbnail.appex": "target/quicklook/PlugIns/YhwpQuickLookThumbnail.appex"
+      }
+    },
+    "windows": {
+      "wix": {
+        "template": "windows/main.wxs"
+      }
+    }
   },
   "plugins": {
     "updater": {

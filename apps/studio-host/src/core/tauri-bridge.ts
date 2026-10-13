@@ -1,7 +1,8 @@
-import { WasmBridge } from '@/core/wasm-bridge';
-import type { DocumentInfo } from '@/core/types';
+import { WasmBridge } from '@/upstream/core';
+import type { DocumentInfo } from '@/upstream/core';
 import { remove, stat } from '@tauri-apps/plugin-fs';
 import { finiteFileSize, readFileInChunks, writeFileInChunks } from './chunked-fs';
+import { loadDocumentForOpen } from './document-open';
 
 type DocumentFormat = 'hwp' | 'hwpx';
 
@@ -59,6 +60,11 @@ export interface DesktopSaveResult {
   warnings: unknown[];
 }
 
+export interface RecentDocument {
+  path: string;
+  fileName: string;
+}
+
 export interface DesktopLoadPayload {
   docInfo: DocumentInfo;
   message: string;
@@ -77,6 +83,9 @@ export interface DesktopBridgeApi {
   destroyCurrentWindow(): Promise<void>;
   cancelAppQuit(): Promise<void>;
   revealInFolder(): Promise<void>;
+  listRecentDocuments(): Promise<RecentDocument[]>;
+  clearRecentDocuments(): Promise<void>;
+  renderDocumentPreview(path: string): Promise<string>;
   getUpdateState(): Promise<DesktopUpdateState>;
   startUpdateInstall(): Promise<void>;
   restartToApplyUpdate(): Promise<void>;
@@ -91,18 +100,25 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
   private sourceFormat: DocumentFormat = 'hwp';
   private revision = 0;
   private dirty = false;
+  private documentOperationPending = false;
 
   async openDocumentFromDialog(): Promise<DesktopLoadPayload | null> {
-    const { open } = await import('@tauri-apps/plugin-dialog');
-    const selected = await open({
-      multiple: false,
-      filters: [{ name: 'HWP/HWPX 문서', extensions: ['hwp', 'hwpx'] }],
+    return this.withDocumentOperation(async () => {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: 'HWP/HWPX 문서', extensions: ['hwp', 'hwpx'] }],
+      });
+      if (!selected || Array.isArray(selected)) return null;
+      return this.openDocumentPath(selected);
     });
-    if (!selected || Array.isArray(selected)) return null;
-    return this.openDocumentByPath(selected);
   }
 
   async openDocumentByPath(path: string): Promise<DesktopLoadPayload | null> {
+    return this.withDocumentOperation(() => this.openDocumentPath(path));
+  }
+
+  private async openDocumentPath(path: string): Promise<DesktopLoadPayload | null> {
     if (!(await this.confirmReadyForDocumentReplacement())) return null;
 
     await this.invoke<void>('prepare_document_open', { path });
@@ -113,8 +129,14 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
     });
     const previousDocId = this.docId;
     try {
-      const info = super.loadDocument(bytes, result.fileName);
-      this.applyNativeOpenResult(result);
+      const info = await loadDocumentForOpen(this, bytes, result.fileName);
+      if (!info) {
+        await this.closeNativeDocument(result.docId);
+        return null;
+      }
+      this.applyNativeOpenResult(result, this.normalizedSourceFormat(super.getSourceFormat()));
+      await this.noteFinderRecentDocument(path);
+      await this.recordRecentDocument(path);
       await this.closeReplacedDocument(previousDocId, result.docId);
       return {
         docInfo: info,
@@ -131,6 +153,10 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
   }
 
   async createNewDocumentAsync(): Promise<DesktopLoadPayload | null> {
+    return this.withDocumentOperation(() => this.createDocument());
+  }
+
+  private async createDocument(): Promise<DesktopLoadPayload | null> {
     if (!(await this.confirmReadyForDocumentReplacement())) return null;
 
     const result = await this.invoke<NativeOpenResult>('create_document');
@@ -153,49 +179,52 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
     return this.invoke<string>('create_editor_window');
   }
 
+  getSourceFormat(): string {
+    return this.sourceFormat;
+  }
+
   async saveDocumentFromCommand(): Promise<DesktopSaveResult | null> {
+    return this.withDocumentOperation(() => this.saveDocument());
+  }
+
+  private async saveDocument(): Promise<DesktopSaveResult | null> {
     const docId = this.ensureDocumentLoaded();
+    if (this.requiresPasswordForSave) {
+      throw new Error('암호 문서의 원본 저장은 아직 지원하지 않습니다. 다른 이름으로 저장에서 암호 없는 HWP 파일로 저장하세요.');
+    }
     if (!this.sourcePath) {
-      return this.saveDocumentAsFromCommand();
+      return this.saveDocumentAs();
     }
     if (this.sourceFormat === 'hwpx') {
-      return this.saveHwpxThroughStaging(docId, null);
+      throw new Error('HWPX 원본 저장은 아직 안전하게 지원하지 않습니다. 다른 이름으로 저장에서 HWP 파일로 저장하세요.');
     }
     return this.saveHwpThroughStaging(docId, null);
   }
 
   async saveDocumentAsFromCommand(): Promise<DesktopSaveResult | null> {
-    const docId = this.ensureDocumentLoaded();
-    // 사용자가 .hwp 또는 .hwpx 어느 쪽으로든 저장할 수 있도록 두 확장자 모두 제공.
-    // 기본 추천 확장자는 현재 문서의 source 포맷.
-    const isHwpxSource = this.sourceFormat === 'hwpx';
-    const suggested = isHwpxSource
-      ? this.suggestedDocName('hwpx')
-      : this.suggestedDocName('hwp');
-    const targetPath = await this.selectSavePath(
-      suggested,
-      'HWP / HWPX 문서',
-      ['hwp', 'hwpx'],
-    );
-    if (!targetPath) return null;
+    return this.withDocumentOperation(() => this.saveDocumentAs());
+  }
 
-    const lower = targetPath.toLowerCase();
-    if (lower.endsWith('.hwpx')) {
-      return this.saveHwpxThroughStaging(docId, targetPath);
-    }
-    // 사용자가 확장자 안 적었으면 source 포맷 따라감
-    if (!lower.endsWith('.hwp') && isHwpxSource) {
-      return this.saveHwpxThroughStaging(docId, this.withExtension(targetPath, 'hwpx'));
+  private async saveDocumentAs(): Promise<DesktopSaveResult | null> {
+    const docId = this.ensureDocumentLoaded();
+    const targetPath = await this.selectSavePath(this.suggestedHwpName(), 'HWP 문서', ['hwp']);
+    if (!targetPath) return null;
+    if (this.requiresPasswordForSave) {
+      const { message } = await import('@tauri-apps/plugin-dialog');
+      const choice = await message('저장한 HWP 파일에는 암호가 적용되지 않습니다. 암호 없이 저장하시겠습니까?', {
+        title: '암호 없이 저장', kind: 'warning',
+        buttons: { ok: '암호 없이 저장', cancel: '취소' },
+      });
+      if (choice !== '암호 없이 저장' && choice !== 'Ok') return null;
     }
     return this.saveHwpThroughStaging(docId, this.withExtension(targetPath, 'hwp'));
   }
 
-  private suggestedDocName(ext: 'hwp' | 'hwpx'): string {
-    const base = this.fileName.replace(/\.(hwp|hwpx)$/i, '') || 'document';
-    return `${base}.${ext}`;
+  async exportPdfFromCommand(): Promise<string | null> {
+    return this.withDocumentOperation(() => this.exportPdf());
   }
 
-  async exportPdfFromCommand(): Promise<string | null> {
+  private async exportPdf(): Promise<string | null> {
     this.ensureDocumentLoaded();
     const targetPath = await this.selectSavePath(this.suggestedPdfName(), 'PDF 문서', ['pdf']);
     if (!targetPath) return null;
@@ -217,7 +246,7 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
   }
 
   async printCurrentWebview(): Promise<void> {
-    await this.invoke<void>('print_webview');
+    await this.withDocumentOperation(() => this.invoke<void>('print_webview'));
   }
 
   async destroyCurrentWindow(): Promise<void> {
@@ -231,6 +260,18 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
   async revealInFolder(): Promise<void> {
     if (!this.sourcePath) return;
     await this.invoke<void>('reveal_in_folder', { path: this.sourcePath });
+  }
+
+  async listRecentDocuments(): Promise<RecentDocument[]> {
+    return this.invoke<RecentDocument[]>('list_recent_documents');
+  }
+
+  async clearRecentDocuments(): Promise<void> {
+    await this.invoke<void>('clear_recent_documents');
+  }
+
+  async renderDocumentPreview(path: string): Promise<string> {
+    return this.invoke<string>('render_document_preview', { path });
   }
 
   async getUpdateState(): Promise<DesktopUpdateState> {
@@ -259,9 +300,26 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
   }
 
   async confirmWindowClose(): Promise<boolean> {
-    const canClose = await this.confirmReadyForDocumentReplacement();
-    if (canClose) await this.releaseCurrentNativeDocument();
-    return canClose;
+    if (this.documentOperationPending) return false;
+    return this.withDocumentOperation(async () => {
+      const canClose = await this.confirmReadyForDocumentReplacement();
+      if (canClose) await this.releaseCurrentNativeDocument();
+      return canClose;
+    });
+  }
+
+  // A password or native dialog can stay open while Finder/menu events arrive.
+  // Keep each document transaction exclusive; internal safety saves share its lock.
+  private async withDocumentOperation<T>(operation: () => Promise<T>): Promise<T> {
+    if (this.documentOperationPending) {
+      throw new Error('다른 문서 작업이 진행 중입니다. 현재 작업을 완료하거나 취소하세요.');
+    }
+    this.documentOperationPending = true;
+    try {
+      return await operation();
+    } finally {
+      this.documentOperationPending = false;
+    }
   }
 
   private async invoke<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
@@ -275,6 +333,18 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
     } catch (error) {
       console.warn('[TauriBridge] native document cleanup failed:', error);
     }
+  }
+
+  private async recordRecentDocument(path: string): Promise<void> {
+    await this.invoke<void>('record_recent_document', { path }).catch((error: unknown) => {
+      console.warn('[TauriBridge] recent document update failed:', error);
+    });
+  }
+
+  private async noteFinderRecentDocument(path: string): Promise<void> {
+    await this.invoke<void>('note_finder_recent_document', { path }).catch((error: unknown) => {
+      console.warn('[TauriBridge] Finder recent document update failed:', error);
+    });
   }
 
   private async closeReplacedDocument(previousDocId: string | null, nextDocId: string): Promise<void> {
@@ -331,37 +401,8 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
         allowExternalOverwrite,
       });
       this.applyNativeSaveResult(result);
-      return result;
-    } finally {
-      await remove(stagedPath).catch(() => undefined);
-    }
-  }
-
-  private async saveHwpxThroughStaging(
-    docId: string,
-    targetPath: string | null,
-  ): Promise<DesktopSaveResult | null> {
-    const finalPath = targetPath ?? this.sourcePath;
-    if (!finalPath) throw new Error('새 문서는 저장 경로가 필요합니다');
-
-    // HWPX 저장은 베타 — 첫 시도에 동의 받기 (localStorage 에 표식 저장).
-    const consented = await this.ensureHwpxConsent();
-    if (!consented) return null;
-
-    const allowExternalOverwrite = await this.confirmExternalOverwriteIfNeeded(docId, finalPath);
-    if (allowExternalOverwrite === null) return null;
-
-    const stagedPath = await this.invoke<string>('prepare_staged_hwpx_save', { targetPath: finalPath });
-    try {
-      await this.writeCurrentHwpxToPath(stagedPath);
-      const result = await this.invoke<DesktopSaveResult>('commit_staged_hwpx_save', {
-        docId,
-        stagedPath,
-        targetPath: finalPath,
-        expectedRevision: this.revision,
-        allowExternalOverwrite,
-      });
-      this.applyNativeSaveResult(result);
+      this.requiresPasswordForSave = false;
+      await this.noteFinderRecentDocument(finalPath);
       return result;
     } finally {
       await remove(stagedPath).catch(() => undefined);
@@ -384,7 +425,7 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
     const cancelLabel = '저장 취소';
     const result = await message(
       [
-        '원본 파일이 외부에서 변경되었습니다.',
+        '원본 파일이 YHWP 밖에서 변경되었습니다.',
         status.sourcePath ? `파일: ${status.sourcePath}` : '',
         status.reason ?? '',
         '',
@@ -421,7 +462,10 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
   }
 
   private async saveCurrentDocumentForSafety(): Promise<DesktopSaveResult | null> {
-    return this.saveDocumentFromCommand();
+    if (this.sourceFormat === 'hwpx' || this.requiresPasswordForSave) {
+      return this.saveDocumentAs();
+    }
+    return this.saveDocument();
   }
 
   private async promptUnsavedChanges(): Promise<'save' | 'discard' | 'cancel'> {
@@ -457,47 +501,6 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
 
   private async writeCurrentHwpToPath(path: string): Promise<void> {
     await writeFileInChunks(path, super.exportHwp());
-  }
-
-  private async writeCurrentHwpxToPath(path: string): Promise<void> {
-    await writeFileInChunks(path, super.exportHwpx());
-  }
-
-  /**
-   * HWPX 저장 베타 안내 — 처음 한 번만 노출, 이후 localStorage 표식으로 skip.
-   * 이 다이얼로그는 file:save / file:save-as 양쪽 진입로에서 일관되게 적용된다.
-   */
-  private async ensureHwpxConsent(): Promise<boolean> {
-    const KEY = 'yhwp:hwpx-save-consented-v1';
-    try {
-      if (localStorage.getItem(KEY) === '1') return true;
-    } catch { /* private mode 등 — 매번 묻기 */ }
-
-    const { ask } = await import('@tauri-apps/plugin-dialog');
-    const ok = await ask(
-      [
-        'HWPX 저장은 현재 베타 단계입니다.',
-        '',
-        '단순 텍스트 위주 문서는 한컴오피스에서 정상적으로 다시 열립니다.',
-        '복잡한 표 / 이미지 / 차트 / 매크로가 들어간 문서는 일부 서식이',
-        '손실될 수 있습니다.',
-        '',
-        '안전을 위해서는 .hwp 형식으로 저장하시는 것을 권장합니다.',
-        '',
-        '계속 진행하시겠습니까? (한 번 진행하면 다시 묻지 않습니다)',
-      ].join('\n'),
-      {
-        title: 'HWPX 저장 — 베타 안내',
-        kind: 'warning',
-        okLabel: '계속 진행',
-        cancelLabel: '취소',
-      },
-    );
-
-    if (ok) {
-      try { localStorage.setItem(KEY, '1'); } catch { /* 무시 */ }
-    }
-    return ok;
   }
 
   private withExtension(path: string, extension: string): string {
@@ -547,10 +550,14 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
     return { len: size, modifiedMillis };
   }
 
-  private applyNativeOpenResult(result: NativeOpenResult): void {
+  private normalizedSourceFormat(value: string): DocumentFormat {
+    return value === 'hwpx' ? 'hwpx' : 'hwp';
+  }
+
+  private applyNativeOpenResult(result: NativeOpenResult, sourceFormat = result.format): void {
     this.docId = result.docId;
     this.sourcePath = result.sourcePath ?? null;
-    this.sourceFormat = result.format;
+    this.sourceFormat = sourceFormat;
     this.revision = result.revision;
     this.dirty = result.dirty;
     this.fileName = result.fileName;
@@ -569,28 +576,18 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
     this.updateDocumentTitle();
   }
 
+  private suggestedHwpName(): string {
+    const name = this.fileName.replace(/\.(hwp|hwpx)$/i, '') || 'document';
+    return `${name}.hwp`;
+  }
+
   private suggestedPdfName(): string {
     const name = this.fileName.replace(/\.(hwp|hwpx)$/i, '') || 'document';
     return `${name}.pdf`;
   }
 
   private updateDocumentTitle(): void {
-    const title = (() => {
-      if (!this.docId) return 'YHWP';
-      const name = this.fileName || '문서';
-      return `${this.dirty ? '• ' : ''}${name} — YHWP`;
-    })();
-    document.title = title;
-    // Tauri 윈도우 OS 타이틀바도 명시적으로 동기화 (자동 sync 에 의존하지 않음).
-    void this.setNativeWindowTitle(title);
-  }
-
-  private async setNativeWindowTitle(title: string): Promise<void> {
-    try {
-      const { getCurrentWebviewWindow } = await import('@tauri-apps/api/webviewWindow');
-      await getCurrentWebviewWindow().setTitle(title);
-    } catch {
-      // Tauri 런타임이 아닌 환경(웹 뷰어)에서는 무시 — document.title 만으로 충분
-    }
+    const name = this.docId ? this.fileName || '문서' : 'YHWP';
+    document.title = `${this.dirty ? '• ' : ''}${name} - YHWP`;
   }
 }

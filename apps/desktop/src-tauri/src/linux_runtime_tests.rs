@@ -20,6 +20,9 @@ struct EnvRestore {
     input_method: Option<OsString>,
     xmodifiers: Option<OsString>,
     appdir: Option<OsString>,
+    appimage: Option<OsString>,
+    wayland_display: Option<OsString>,
+    xdg_session_type: Option<OsString>,
     webkit_disable_dmabuf_renderer: Option<OsString>,
     webkit_disable_compositing_mode: Option<OsString>,
 }
@@ -35,6 +38,9 @@ impl EnvRestore {
             input_method: env::var_os("INPUT_METHOD"),
             xmodifiers: env::var_os("XMODIFIERS"),
             appdir: env::var_os("APPDIR"),
+            appimage: env::var_os("APPIMAGE"),
+            wayland_display: env::var_os("WAYLAND_DISPLAY"),
+            xdg_session_type: env::var_os("XDG_SESSION_TYPE"),
             webkit_disable_dmabuf_renderer: env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER"),
             webkit_disable_compositing_mode: env::var_os("WEBKIT_DISABLE_COMPOSITING_MODE"),
         }
@@ -52,6 +58,9 @@ impl Drop for EnvRestore {
             restore_env("INPUT_METHOD", &self.input_method);
             restore_env("XMODIFIERS", &self.xmodifiers);
             restore_env("APPDIR", &self.appdir);
+            restore_env("APPIMAGE", &self.appimage);
+            restore_env("WAYLAND_DISPLAY", &self.wayland_display);
+            restore_env("XDG_SESSION_TYPE", &self.xdg_session_type);
             restore_env(
                 "WEBKIT_DISABLE_DMABUF_RENDERER",
                 &self.webkit_disable_dmabuf_renderer,

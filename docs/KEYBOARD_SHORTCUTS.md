@@ -13,10 +13,9 @@ that use **Alt**, macOS users should use **Option (⌥)**.
 | Cmd/Ctrl+O | Open |
 | Cmd/Ctrl+S | Save |
 | Cmd/Ctrl+Shift+S | Save As |
-| Cmd/Ctrl+E | Export PDF |
 | Cmd/Ctrl+P | Print |
 | F7 | Page Setup |
-| Cmd/Ctrl+Q | Quit HOP |
+| Cmd/Ctrl+Q | Quit YHWP |
 
 ## Edit
 
@@ -29,6 +28,7 @@ that use **Alt**, macOS users should use **Option (⌥)**.
 | Cmd/Ctrl+C | Copy |
 | Cmd/Ctrl+V | Paste |
 | Cmd/Ctrl+A | Select All |
+| Cmd/Ctrl+E | Delete |
 | Cmd/Ctrl+F | Find |
 | Cmd/Ctrl+F2 | Find and Replace |
 | Cmd/Ctrl+L | Find Again |

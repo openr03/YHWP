@@ -1,5 +1,5 @@
 use crate::pending_open::PendingOpenPaths;
-use rhwp::DocumentCore;
+use yhwp_rhwp_adapter::{split_paragraph_for_editing, DocumentCore};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -220,46 +220,6 @@ impl DocumentSessionManager {
         Ok(session.save_result())
     }
 
-    pub fn commit_staged_hwpx_save(
-        &mut self,
-        doc_id: &str,
-        staged_path: PathBuf,
-        target_path: PathBuf,
-        expected_revision: Option<u64>,
-        allow_external_overwrite: bool,
-    ) -> Result<SaveResult, String> {
-        let session = self.session_mut(doc_id)?;
-        session.check_revision(expected_revision)?;
-        if !allow_external_overwrite {
-            session.check_external_modification_for_path(&target_path)?;
-        }
-        let format = DocumentFormat::from_path(&target_path)?;
-        if format != DocumentFormat::Hwpx {
-            return Err(
-                "HWP 경로에는 HWPX 바이트를 저장할 수 없습니다. .hwpx 파일로 저장하세요."
-                    .to_string(),
-            );
-        }
-        let bytes = std::fs::read(&staged_path).map_err(|e| {
-            format!(
-                "staging 파일을 읽을 수 없습니다: {} ({})",
-                staged_path.display(),
-                e
-            )
-        })?;
-        // HWPX 라이터는 베타 — 검증 실패해도 사용자가 의식적으로 저장 시도한 것이므로
-        // editable_core 재로드는 best-effort 로 처리 (실패해도 파일 저장은 진행).
-        let core = editable_core_from_bytes(
-            &bytes,
-            "HWPX 저장 바이트 검증 실패",
-            "HWPX 저장 문서 변환 실패",
-        )
-        .ok();
-        session.finish_hwpx_save(target_path, &bytes, core)?;
-        let _ = std::fs::remove_file(&staged_path);
-        Ok(session.save_result())
-    }
-
     pub fn external_modification_status(
         &self,
         doc_id: &str,
@@ -420,12 +380,12 @@ impl DocumentSessionManager {
                 let sec = number_arg(&args, "sec")?;
                 let para = number_arg(&args, "para")?;
                 let char_offset = number_arg(&args, "charOffset")?;
-                Some(parse_json_string(
-                    session
-                        .ensure_core_loaded()?
-                        .split_paragraph_native(sec as usize, para as usize, char_offset as usize)
-                        .map_err(|e| e.to_string())?,
-                )?)
+                Some(parse_json_string(split_paragraph_for_editing(
+                    session.ensure_core_loaded()?,
+                    sec as usize,
+                    para as usize,
+                    char_offset as usize,
+                )?)?)
             }
             "mergeParagraph" => {
                 let sec = number_arg(&args, "sec")?;
@@ -577,7 +537,7 @@ impl DocumentSession {
             return Ok(ExternalModificationStatus {
                 changed: true,
                 source_path: Some(source_path.to_string_lossy().to_string()),
-                reason: Some("원본 파일이 HOP 밖에서 변경되었습니다".to_string()),
+                reason: Some("원본 파일이 YHWP 밖에서 변경되었습니다".to_string()),
             });
         }
 
@@ -617,26 +577,6 @@ impl DocumentSession {
         }
         self.source_path = Some(target_path);
         self.source_format = DocumentFormat::Hwp;
-        self.refresh_source_fingerprint_from_bytes(bytes)?;
-        self.revision += 1;
-        self.dirty = false;
-        self.page_svg_cache.clear();
-        Ok(())
-    }
-
-    fn finish_hwpx_save(
-        &mut self,
-        target_path: PathBuf,
-        bytes: &[u8],
-        core_override: Option<DocumentCore>,
-    ) -> Result<(), String> {
-        atomic_write(&target_path, bytes)?;
-        if let Some(core) = core_override {
-            self.page_count = core.page_count();
-            self.core = Some(core);
-        }
-        self.source_path = Some(target_path);
-        self.source_format = DocumentFormat::Hwpx;
         self.refresh_source_fingerprint_from_bytes(bytes)?;
         self.revision += 1;
         self.dirty = false;

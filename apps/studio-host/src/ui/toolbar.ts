@@ -1,10 +1,7 @@
-import type { WasmBridge } from '@/core/wasm-bridge';
-import type { EventBus } from '@/core/event-bus';
-import type { CharProperties, ParaProperties } from '@/core/types';
-import type { CommandDispatcher } from '@/command/dispatcher';
+import type { CharProperties, EventBus, FontSet, ParaProperties, WasmBridge } from '@/upstream/core';
+import { userSettings } from '@/upstream/core';
+import type { CommandDispatcher } from '@/upstream/commands';
 import { loadWebFonts } from '@/core/font-loader';
-import { userSettings } from '@/core/user-settings';
-import type { FontSet } from '@/core/user-settings';
 import { getLocalFonts } from '@/core/local-fonts';
 import { sanitizeAuthoringFontFamily } from '@/core/font-authoring-policy';
 import { getCustomSelectRoot, syncCustomSelect } from './custom-select';
@@ -36,6 +33,7 @@ export class Toolbar {
   private btnLsDown: HTMLButtonElement;
   private fontLang: HTMLSelectElement;
   private fontApplyRequestId = 0;
+  private alignButtons: Array<{ button: HTMLButtonElement; alignment: string }> = [];
 
   private enabled = false;
   private styleDropdownInitialized = false;
@@ -108,6 +106,9 @@ export class Toolbar {
         e.preventDefault();
         this.dispatcher.dispatch(cmdId);
       });
+      btn.addEventListener('click', (event) => {
+        if (event.detail === 0) this.dispatcher.dispatch(cmdId);
+      });
     }
   }
 
@@ -167,10 +168,11 @@ export class Toolbar {
       const commit = () => {
         const num = parseInt(input.value, 10);
         if (num > 0) {
-          this.ensureLsOption(num);
-          this.lsSelect.value = String(num);
+          const clamped = Math.min(500, num);
+          this.ensureLsOption(clamped);
+          this.lsSelect.value = String(clamped);
           syncCustomSelect(this.lsSelect);
-          this.dispatcher.dispatch('format:line-spacing', { value: num });
+          this.dispatcher.dispatch('format:line-spacing', { value: clamped });
         }
         input.remove();
         host.style.display = '';
@@ -187,7 +189,7 @@ export class Toolbar {
     this.btnLsUp.addEventListener('mousedown', (e) => {
       e.preventDefault();
       const cur = Number(this.lsSelect.value) || 160;
-      const next = cur + 5;
+      const next = Math.min(500, cur + 5);
       this.ensureLsOption(next);
       this.lsSelect.value = String(next);
       syncCustomSelect(this.lsSelect);
@@ -257,7 +259,9 @@ export class Toolbar {
         e.preventDefault();
         const pt = parseFloat(this.fontSize.value);
         if (!isNaN(pt) && pt > 0) {
-          this.eventBus.emit('format-char', { fontSize: Math.round(pt * 100) } as CharProperties);
+          const clampedPt = Math.min(4096, Math.max(1, pt));
+          this.fontSize.value = String(clampedPt);
+          this.eventBus.emit('format-char', { fontSize: Math.round(clampedPt * 100) } as CharProperties);
         }
       }
     });
@@ -266,7 +270,7 @@ export class Toolbar {
     this.btnSizeUp.addEventListener('mousedown', (e) => {
       e.preventDefault();
       const pt = parseFloat(this.fontSize.value) || 10;
-      const newPt = pt + 1;
+      const newPt = Math.min(4096, pt + 1);
       this.fontSize.value = String(newPt);
       this.eventBus.emit('format-char', { fontSize: Math.round(newPt * 100) } as CharProperties);
     });
@@ -280,10 +284,32 @@ export class Toolbar {
     });
   }
 
+  /** 문서 로드 시 글꼴 드롭다운을 기본/문서/대표/로컬 글꼴로 재구성한다. */
+  initFontDropdown(docFonts?: string[]): void {
+    this.beginFontApplyRequest();
+    this.lastFontFamilies = undefined;
+    const baseFonts = ['함초롬바탕', '함초롬돋움', '맑은 고딕', '나눔고딕', '바탕', '돋움', '궁서'];
+    this.fontName.replaceChildren();
+    const seen = new Set<string>();
+    for (const name of [...baseFonts, ...(docFonts ?? [])]) {
+      if (seen.has(name)) continue;
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      this.fontName.appendChild(option);
+      seen.add(name);
+    }
+    this.populateFontSetOptions();
+    this.populateLocalFontOptions();
+    syncCustomSelect(this.fontName);
+  }
+
   /** 글자색 피커 이벤트 */
   private setupColorPicker(): void {
     this.btnTextColor.addEventListener('mousedown', (e) => {
       e.preventDefault();
+    });
+    this.btnTextColor.addEventListener('click', () => {
       this.colorPicker.click();
     });
 
@@ -315,6 +341,8 @@ export class Toolbar {
     btnNone.textContent = '색 없음';
     btnNone.addEventListener('mousedown', (e) => {
       e.preventDefault();
+    });
+    btnNone.addEventListener('click', () => {
       this.highlightColor = '#ffffff';
       this.highlightBar.style.background = '#ffffff';
       this.eventBus.emit('format-char', { shadeColor: '#ffffff' } as CharProperties);
@@ -324,11 +352,14 @@ export class Toolbar {
     btnOther.textContent = '다른 색...';
     const hiddenPicker = document.createElement('input');
     hiddenPicker.type = 'color';
+    hiddenPicker.tabIndex = -1;
+    hiddenPicker.setAttribute('aria-label', '형광펜 색상');
     hiddenPicker.value = this.highlightColor;
     hiddenPicker.style.cssText = 'position:absolute;width:0;height:0;opacity:0;';
-    btnOther.appendChild(hiddenPicker);
     btnOther.addEventListener('mousedown', (e) => {
       e.preventDefault();
+    });
+    btnOther.addEventListener('click', () => {
       hiddenPicker.click();
     });
     hiddenPicker.addEventListener('input', () => {
@@ -339,6 +370,7 @@ export class Toolbar {
     });
     actRow.appendChild(btnNone);
     actRow.appendChild(btnOther);
+    actRow.appendChild(hiddenPicker);
     palette.appendChild(actRow);
 
     // 색상 스워치 행들
@@ -365,7 +397,17 @@ export class Toolbar {
     this.btnHighlight.addEventListener('mousedown', (e) => {
       e.preventDefault();
       e.stopPropagation();
+    });
+    this.btnHighlight.addEventListener('click', () => {
       this.highlightDropdown.classList.toggle('open');
+    });
+
+    this.highlightDropdown.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || !this.highlightDropdown.classList.contains('open')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      this.highlightDropdown.classList.remove('open');
+      this.btnHighlight.focus();
     });
 
     // 외부 클릭 시 닫기
@@ -378,20 +420,24 @@ export class Toolbar {
 
   /** 문단 정렬 버튼 이벤트 → 커맨드 디스패치 */
   private setupAlignButtons(): void {
-    const aligns: [string, string][] = [
-      ['#btn-align-left', 'format:align-left'],
-      ['#btn-align-center', 'format:align-center'],
-      ['#btn-align-right', 'format:align-right'],
-      ['#btn-align-justify', 'format:align-justify'],
-      ['#btn-align-distribute', 'format:align-distribute'],
-      ['#btn-align-split', 'format:align-split'],
+    const aligns: [string, string, string][] = [
+      ['#btn-align-left', 'left', 'format:align-left'],
+      ['#btn-align-center', 'center', 'format:align-center'],
+      ['#btn-align-right', 'right', 'format:align-right'],
+      ['#btn-align-justify', 'justify', 'format:align-justify'],
+      ['#btn-align-distribute', 'distribute', 'format:align-distribute'],
+      ['#btn-align-split', 'split', 'format:align-split'],
     ];
-    for (const [sel, cmdId] of aligns) {
+    for (const [sel, alignment, cmdId] of aligns) {
       const btn = this.container.querySelector(sel) as HTMLButtonElement;
       if (btn) {
+        this.alignButtons.push({ button: btn, alignment });
         btn.addEventListener('mousedown', (e) => {
           e.preventDefault();
           this.dispatcher.dispatch(cmdId);
+        });
+        btn.addEventListener('click', (event) => {
+          if (event.detail === 0) this.dispatcher.dispatch(cmdId);
         });
       }
     }
@@ -481,12 +527,18 @@ export class Toolbar {
 
   /** 커서 위치의 문단 속성(줄간격 등)을 도구 모음에 반영한다 */
   private updateParaState(props: ParaProperties): void {
+    for (const { button, alignment } of this.alignButtons) {
+      this.setActive(button, props.alignment === alignment);
+    }
     if (props.lineSpacingType === 'Percent' && props.lineSpacing !== undefined) {
       const val = Math.round(props.lineSpacing);
       this.ensureLsOption(val);
       this.lsSelect.value = String(val);
       syncCustomSelect(this.lsSelect);
+      return;
     }
+    this.lsSelect.selectedIndex = -1;
+    syncCustomSelect(this.lsSelect);
   }
 
   /** 커서 위치의 스타일을 드롭다운에 반영한다 */
@@ -556,6 +608,8 @@ export class Toolbar {
     const opacity = enabled ? '1' : '0.5';
     this.container.style.opacity = opacity;
     this.container.style.pointerEvents = enabled ? 'auto' : 'none';
+    this.container.setAttribute('aria-disabled', String(!enabled));
+    this.container.inert = !enabled;
   }
 
   /** 선택된 언어 카테고리에 해당하는 글꼴명을 반환한다 */

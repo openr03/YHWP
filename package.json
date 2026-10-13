@@ -1,24 +1,27 @@
 {
   "name": "yhwp",
-  "version": "0.1.23",
+  "version": "0.2.0",
   "private": true,
-  "description": "YHWP — 오픈소스 HWP/HWPX 데스크톱 앱 (운영: 영삼넷 youngsam.net)",
+  "description": "YHWP is Open HWP",
   "license": "MIT",
-  "homepage": "https://hwp.youngsam.net",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/openr03/YHWP.git"
-  },
   "type": "module",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "build:studio": "pnpm --filter @youngsam/yhwp-studio-host build",
+    "build:quicklook:macos": "node scripts/build-quicklook-macos.mjs",
+    "build:before-tauri": "pnpm run build:studio && pnpm run build:quicklook:macos",
     "build:desktop": "pnpm --filter yhwp-desktop build",
     "tauri": "pnpm --filter yhwp-desktop tauri",
-    "test": "pnpm run test:upstream && pnpm run test:studio && pnpm run test:desktop",
-    "test:upstream": "node --test tests/update-upstream.test.mjs",
+    "test": "pnpm run test:upstream && pnpm run test:studio && pnpm run test:desktop && pnpm run test:quicklook:macos",
+    "test:upstream": "node --test tests/update-upstream.test.mjs tests/rhwp-baseline.test.mjs tests/rhwp-boundary.test.mjs tests/yhwp-version.test.mjs",
     "test:studio": "pnpm --filter @youngsam/yhwp-studio-host test",
     "test:desktop": "cd apps/desktop/src-tauri && cargo test",
-    "clippy:desktop": "cd apps/desktop/src-tauri && cargo clippy -- -D warnings"
+    "test:quicklook:macos": "node scripts/test-quicklook-macos.mjs",
+    "clippy:desktop": "cd apps/desktop/src-tauri && cargo clippy -- -D warnings",
+    "upstream:update": "node scripts/update-rhwp-upstream.mjs",
+    "upstream:verify": "node scripts/verify-rhwp-upstream.mjs"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.4.0"
   }
 }

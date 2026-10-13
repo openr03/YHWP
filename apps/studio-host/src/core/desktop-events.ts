@@ -1,7 +1,11 @@
-import type { CommandDispatcher } from '@/command/dispatcher';
-import type { EventBus } from '@/core/event-bus';
+import type { CommandDispatcher } from '@/upstream/commands';
+import type { EventBus } from '@/upstream/core';
 import { isTauriRuntime } from '@/core/bridge-factory';
-import { findLatestSupportedDocumentPath, hasSupportedDocumentPath } from '@/core/document-files';
+import {
+  findLatestSupportedDocumentPath,
+  hasSupportedDocumentPath,
+  isSupportedDocumentPath,
+} from '@/core/document-files';
 import type { DesktopBridgeApi, DesktopLoadPayload, DesktopUpdateState } from './tauri-bridge';
 
 type DesktopRuntimeBridge = Partial<
@@ -44,25 +48,25 @@ export async function setupDesktopEvents({
   const { getCurrentWebviewWindow } = await import('@tauri-apps/api/webviewWindow');
   const currentWindow = getCurrentWebviewWindow();
 
-  await listen('hop-job-progress', (event) => {
+  await listen('yhwp-job-progress', (event) => {
     const payload = event.payload as { message?: string };
     if (payload?.message) setMessage(payload.message);
   });
 
-  await listen('hop-update-state', (event) => {
+  await listen('yhwp-update-state', (event) => {
     onUpdateState(event.payload as DesktopUpdateState);
   });
 
-  await currentWindow.listen('hop-menu-command', (event) => {
+  await currentWindow.listen('yhwp-menu-command', (event) => {
     const command = String(event.payload || '');
     if (command) dispatcher.dispatch(command);
   });
 
-  await currentWindow.listen('hop-app-quit-requested', async () => {
+  await currentWindow.listen('yhwp-app-quit-requested', async () => {
     await handleDesktopAppQuitRequest(desktop, setMessage);
   });
 
-  await currentWindow.listen('hop-open-paths', async (event) => {
+  await currentWindow.listen('yhwp-open-paths', async (event) => {
     const payload = event.payload as { paths?: string[] };
     const pending = await desktop.takePendingOpenPaths?.();
     await openLatestDesktopDocument({
@@ -198,6 +202,7 @@ async function openLatestDesktopDocument({
     return;
   }
   if (!bridge.openDocumentByPath) return;
+  await openRestInNewTabs(paths, path);
 
   try {
     setMessage('파일 로딩 중...');
@@ -207,5 +212,18 @@ async function openLatestDesktopDocument({
     const errMsg = `파일 로드 실패: ${error}`;
     setMessage(errMsg);
     console.error('[desktop-events] 데스크톱 파일 로드 실패:', error);
+  }
+}
+
+/** 여러 문서를 한꺼번에 열면 마지막 문서는 이 창에, 나머지는 새 탭으로 연다. */
+async function openRestInNewTabs(paths: string[], current: string): Promise<void> {
+  const rest = [...new Set(paths.filter(isSupportedDocumentPath))].filter((p) => p !== current);
+  if (rest.length === 0) return;
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke('tabs_open_paths', { paths: rest });
+  } catch (error) {
+    // 탭을 지원하지 않는 플랫폼(macOS)에서는 마지막 문서만 연다
+    console.warn('[desktop-events] 새 탭 열기 실패:', error);
   }
 }

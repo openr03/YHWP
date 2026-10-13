@@ -1,4 +1,4 @@
-use tauri::menu::{Menu, MenuItemBuilder, SubmenuBuilder};
+use tauri::menu::{Menu, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{App, Emitter};
 
 pub fn install(app: &mut App) -> tauri::Result<()> {
@@ -15,6 +15,9 @@ pub fn install(app: &mut App) -> tauri::Result<()> {
     let open = MenuItemBuilder::with_id("file:open", "Open...")
         .accelerator("CmdOrCtrl+O")
         .build(app)?;
+    let open_recent = MenuItemBuilder::with_id("file:open-recent", "Open Recent...")
+        .accelerator("CmdOrCtrl+Alt+O")
+        .build(app)?;
     let save = MenuItemBuilder::with_id("file:save", "Save")
         .accelerator("CmdOrCtrl+S")
         .build(app)?;
@@ -24,6 +27,8 @@ pub fn install(app: &mut App) -> tauri::Result<()> {
     let export_pdf = MenuItemBuilder::with_id("file:export-pdf", "Export PDF...")
         .accelerator("CmdOrCtrl+E")
         .build(app)?;
+    let batch_pdf =
+        MenuItemBuilder::with_id("file:batch-pdf", "Batch Convert Folder to PDF...").build(app)?;
     let print = MenuItemBuilder::with_id("file:print", "Print...")
         .accelerator("CmdOrCtrl+P")
         .build(app)?;
@@ -40,9 +45,7 @@ pub fn install(app: &mut App) -> tauri::Result<()> {
     let copy = MenuItemBuilder::with_id("edit:copy", "Copy")
         .accelerator("CmdOrCtrl+C")
         .build(app)?;
-    let paste = MenuItemBuilder::with_id("edit:paste", "Paste")
-        .accelerator("CmdOrCtrl+V")
-        .build(app)?;
+    let paste = PredefinedMenuItem::paste(app, Some("Paste"))?;
     let find = MenuItemBuilder::with_id("edit:find", "Find")
         .accelerator("CmdOrCtrl+F")
         .build(app)?;
@@ -80,10 +83,12 @@ pub fn install(app: &mut App) -> tauri::Result<()> {
         .item(&new_window)
         .separator()
         .item(&open)
+        .item(&open_recent)
         .item(&save)
         .item(&save_as)
         .separator()
         .item(&export_pdf)
+        .item(&batch_pdf)
         .item(&print)
         .build()?;
     let edit_menu = SubmenuBuilder::new(app, "Edit")
@@ -146,9 +151,9 @@ pub fn install(app: &mut App) -> tauri::Result<()> {
         }
         if id.contains(':') {
             if let Some(label) = crate::windows::target_window_label(app) {
-                let _ = app.emit_to(label, "hop-menu-command", id);
+                let _ = app.emit_to(label, "yhwp-menu-command", id);
             } else {
-                let _ = app.emit("hop-menu-command", id);
+                let _ = app.emit("yhwp-menu-command", id);
             }
         }
     });

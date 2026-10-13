@@ -1,0 +1,140 @@
+/* ── YHWP 리본 도구 상자 ── */
+.rb-panel {
+  display: none;
+  align-items: stretch;
+  height: 100%;
+  gap: 0;
+}
+#icon-toolbar[data-ribbon-tab]:not([data-ribbon-tab="edit"]) > .tb-group,
+#icon-toolbar[data-ribbon-tab]:not([data-ribbon-tab="edit"]) > .tb-sep {
+  display: none !important;
+}
+#icon-toolbar[data-ribbon-tab="file"] > [data-ribbon-panel="file"],
+#icon-toolbar[data-ribbon-tab="view"] > [data-ribbon-panel="view"],
+#icon-toolbar[data-ribbon-tab="insert"] > [data-ribbon-panel="insert"],
+#icon-toolbar[data-ribbon-tab="format"] > [data-ribbon-panel="format"],
+#icon-toolbar[data-ribbon-tab="page"] > [data-ribbon-panel="page"],
+#icon-toolbar[data-ribbon-tab="table"] > [data-ribbon-panel="table"],
+#icon-toolbar[data-ribbon-tab="edit-review"] > [data-ribbon-panel="edit-review"] {
+  display: flex;
+}
+.rb-group {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 6px 0;
+  border-right: 1px solid var(--ui-border-subtle);
+}
+.rb-group-body {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  gap: 2px;
+}
+.rb-group-title {
+  padding: 1px 0 2px;
+  font-size: 10.5px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ui-text-hint);
+  white-space: nowrap;
+}
+.rb-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+}
+.rb-btn {
+  display: flex;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 6px);
+  background: transparent;
+  color: var(--ui-text);
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 80ms ease, border-color 80ms ease;
+}
+.rb-btn:hover {
+  background: var(--ui-hover-strong, var(--ui-hover));
+}
+.rb-btn:active {
+  background: var(--ui-active);
+}
+.rb-btn.disabled {
+  opacity: 0.38;
+  cursor: default;
+  background: transparent;
+}
+.rb-large {
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 50px;
+  padding: 3px 6px;
+  font-size: 11.5px;
+}
+.rb-small {
+  gap: 6px;
+  height: 17px;
+  padding: 0 8px 0 5px;
+  font-size: 12px;
+}
+.rb-btn .yi,
+#icon-toolbar .tb-btn .yi {
+  color: var(--yhwp-brand, var(--accent-primary));
+  flex-shrink: 0;
+}
+.rb-btn .yi {
+  color: var(--ui-text-secondary);
+}
+.rb-large .yi {
+  color: var(--yhwp-brand, var(--accent-primary));
+}
+#icon-toolbar .tb-btn .yi {
+  width: 20px;
+  height: 20px;
+  margin: 0 auto 1px;
+}
+
+/* 메뉴 이름 = 리본 탭 */
+:root[data-ribbon="on"] #menu-bar .menu-item.ribbon-active > .menu-title {
+  color: var(--yhwp-brand, var(--accent-primary));
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--yhwp-brand, var(--accent-primary));
+  border-radius: var(--radius-sm, 4px) var(--radius-sm, 4px) 0 0;
+}
+:root[data-ribbon="on"] #menu-bar .menu-item.open > .menu-title,
+#menu-bar .menu-item.open > .menu-title {
+  background: var(--ui-menu-open);
+  color: var(--ui-text-on-accent);
+  box-shadow: none;
+}
+#menu-bar .menu-item.open > .menu-title .menu-caret {
+  color: inherit;
+  opacity: 0.9;
+  background: transparent;
+}
+.menu-caret {
+  display: none;
+  margin-left: 3px;
+  padding: 0 2px;
+  border-radius: 3px;
+  font-size: 10px;
+  opacity: 0.55;
+}
+.menu-caret:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+:root[data-ribbon="on"] .menu-caret {
+  display: inline-block;
+}
+:root[data-ribbon="off"] .menu-item.ribbon-only {
+  display: none;
+}
+:root[data-ribbon="on"] #icon-toolbar {
+  height: 72px;
+  min-height: 72px;
+}

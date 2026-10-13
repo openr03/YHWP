@@ -1,0 +1,54 @@
+.recent-documents-dialog {
+  max-width: calc(100vw - 32px);
+}
+
+.recent-documents-body {
+  padding: 12px 16px;
+}
+
+.recent-documents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: min(360px, calc(100vh - 220px));
+  overflow: auto;
+}
+
+.recent-documents-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  cursor: default;
+}
+
+.recent-documents-item[aria-selected="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.recent-documents-name {
+  overflow: hidden;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-documents-path {
+  overflow: hidden;
+  color: var(--color-text-placeholder);
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-documents-footer-spacer {
+  flex: 1;
+}

@@ -149,7 +149,7 @@ fn merged_gtk_path_prefers_host_directories_without_duplicates() {
     ];
     let path = merged_gtk_paths(
         Some(OsStr::new(
-            "/usr/lib64/gtk-3.0:/opt/hop/gtk-3.0:/usr/lib/gtk-3.0",
+            "/usr/lib64/gtk-3.0:/opt/yhwp/gtk-3.0:/usr/lib/gtk-3.0",
         )),
         &host_dirs,
     )
@@ -157,7 +157,7 @@ fn merged_gtk_path_prefers_host_directories_without_duplicates() {
 
     assert_eq!(
         path,
-        OsString::from("/usr/lib/gtk-3.0:/usr/lib64/gtk-3.0:/opt/hop/gtk-3.0")
+        OsString::from("/usr/lib/gtk-3.0:/usr/lib64/gtk-3.0:/opt/yhwp/gtk-3.0")
     );
 }
 
@@ -178,10 +178,10 @@ fn appimage_owned_cache_is_replaced_with_matching_host_cache() {
         env::set_var("GTK_IM_MODULE_FILE", &bundled_cache);
         env::remove_var("GTK_IM_MODULE");
         env::set_var("XMODIFIERS", "@im=fcitx5;foo=bar");
-        env::set_var("GTK_PATH", "/opt/hop/gtk-3.0");
+        env::set_var("GTK_PATH", "/opt/yhwp/gtk-3.0");
     }
 
-    apply_appimage_runtime_fixes_with_host_caches(&[host_cache.clone()]);
+    apply_appimage_runtime_fixes_with_host_caches(std::slice::from_ref(&host_cache));
 
     assert_eq!(
         env::var_os("GTK_IM_MODULE_FILE"),
@@ -191,7 +191,7 @@ fn appimage_owned_cache_is_replaced_with_matching_host_cache() {
     assert_eq!(
         env::var_os("GTK_PATH"),
         Some(OsString::from(format!(
-            "{}:/usr/lib/x86_64-linux-gnu/gtk-3.0:/usr/lib64/gtk-3.0:/usr/lib/gtk-3.0:/opt/hop/gtk-3.0",
+            "{}:/usr/lib/x86_64-linux-gnu/gtk-3.0:/usr/lib/aarch64-linux-gnu/gtk-3.0:/usr/lib64/gtk-3.0:/usr/lib/gtk-3.0:/opt/yhwp/gtk-3.0",
             host.path().join("gtk-3.0").display()
         )))
     );

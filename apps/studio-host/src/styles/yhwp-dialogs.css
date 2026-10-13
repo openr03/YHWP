@@ -1,0 +1,101 @@
+/* ── 폴더 일괄 변환 대화상자 ── */
+.batch-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.batch-folder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.batch-folder-path {
+  flex: 1;
+  overflow: hidden;
+  padding: 7px 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--ui-surface-muted, #f3f4f7);
+  color: var(--ui-text-secondary);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.batch-folder-path.batch-missing {
+  border-color: #d6336c;
+  color: #d6336c;
+}
+.batch-formats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ui-border-light, var(--ui-border));
+  border-radius: var(--radius-md, 6px);
+}
+.batch-formats legend {
+  padding: 0 4px;
+  color: var(--ui-text-muted);
+  font-size: 12px;
+}
+.batch-formats label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  cursor: pointer;
+}
+.batch-formats span {
+  min-width: 46px;
+  font-weight: 700;
+}
+.batch-formats small,
+.batch-note {
+  color: var(--ui-text-hint);
+  font-size: 12px;
+}
+.batch-recursive {
+  cursor: pointer;
+}
+.batch-note {
+  margin: 0;
+}
+
+/* ── 서식 파일 갤러리 ── */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.template-card {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--ui-border-light, var(--ui-border));
+  border-radius: 10px;
+  background: var(--ui-surface, #fff);
+  color: var(--ui-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.template-card:hover {
+  border-color: var(--accent-hover);
+  background: var(--ui-accent-bg-light, var(--ui-hover));
+}
+.template-card.selected {
+  border-color: var(--yhwp-brand, var(--accent-primary));
+  box-shadow: 0 0 0 2px var(--ui-focus-soft, rgba(47, 98, 240, 0.2));
+}
+.template-icon {
+  grid-row: span 2;
+  font-size: 26px;
+  text-align: center;
+}
+.template-card small {
+  color: var(--ui-text-muted);
+  font-size: 12px;
+}

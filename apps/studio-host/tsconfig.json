@@ -8,10 +8,14 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "noEmit": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "paths": {
+      "@wasm/rhwp.js": ["./vendor/rhwp-core/rhwp.d.ts"],
+      "canvaskit-wasm": ["./node_modules/canvaskit-wasm"],
+      "canvaskit-wasm/*": ["./node_modules/canvaskit-wasm/*"],
       "@upstream/*": ["../../third_party/rhwp/rhwp-studio/src/*"],
       "@/*": ["./src/*", "../../third_party/rhwp/rhwp-studio/src/*"]
     }

@@ -7,18 +7,21 @@ use std::{
 
 const APPIMAGE_GTK_IM_MODULE_CACHE_CANDIDATES: &[&str] = &[
     "usr/lib/x86_64-linux-gnu/gtk-3.0/3.0.0/immodules.cache",
+    "usr/lib/aarch64-linux-gnu/gtk-3.0/3.0.0/immodules.cache",
     "usr/lib64/gtk-3.0/3.0.0/immodules.cache",
     "usr/lib/gtk-3.0/3.0.0/immodules.cache",
 ];
 
 const HOST_GTK_IM_MODULE_CACHE_CANDIDATES: &[&str] = &[
     "/usr/lib/x86_64-linux-gnu/gtk-3.0/3.0.0/immodules.cache",
+    "/usr/lib/aarch64-linux-gnu/gtk-3.0/3.0.0/immodules.cache",
     "/usr/lib64/gtk-3.0/3.0.0/immodules.cache",
     "/usr/lib/gtk-3.0/3.0.0/immodules.cache",
 ];
 
 const HOST_GTK_DIR_CANDIDATES: &[&str] = &[
     "/usr/lib/x86_64-linux-gnu/gtk-3.0",
+    "/usr/lib/aarch64-linux-gnu/gtk-3.0",
     "/usr/lib64/gtk-3.0",
     "/usr/lib/gtk-3.0",
 ];
@@ -30,13 +33,26 @@ const WEBKIT_GRAPHICS_FALLBACK_ENV: &[(&str, &str)] = &[
     ("WEBKIT_DISABLE_DMABUF_RENDERER", "1"),
     ("WEBKIT_DISABLE_COMPOSITING_MODE", "1"),
 ];
+const WEBKIT_GRAPHICS_FALLBACK_DISTRO_FAMILIES: &[&str] = &[
+    "arch",
+    "archlinux",
+    "cachyos",
+    "manjaro",
+    "endeavouros",
+    "garuda",
+];
+const WEBKIT_GRAPHICS_FALLBACK_WAYLAND_DISTRO_FAMILIES: &[&str] = &["fedora", "rhel", "redhat"];
 
-pub fn apply_linux_appimage_runtime_fixes() {
+pub fn apply_linux_runtime_fixes() {
+    apply_linux_runtime_fixes_for_os_release(read_os_release().as_deref());
+}
+
+fn apply_linux_runtime_fixes_for_os_release(os_release: Option<&str>) {
+    apply_webkit_graphics_fallbacks(os_release);
+
     if !is_appimage_runtime() {
         return;
     }
-
-    apply_webkit_graphics_fallbacks(read_os_release().as_deref());
 
     let host_cache_candidates = host_cache_candidate_paths();
     apply_appimage_runtime_fixes_with_host_caches(&host_cache_candidates);
@@ -72,7 +88,6 @@ fn apply_appimage_runtime_fixes_with_host_caches(host_cache_candidates: &[PathBu
         if let Some(cache_path) = find_im_module_cache(host_cache_candidates, module) {
             apply_host_im_module_cache(&cache_path);
             ensure_gtk_im_module(module);
-            return;
         }
     }
 }
@@ -86,10 +101,12 @@ fn read_os_release() -> Option<String> {
 }
 
 fn needs_webkit_graphics_fallback(os_release: Option<&str>) -> bool {
-    is_arch_like_os_release(os_release)
+    distro_family_matches(os_release, WEBKIT_GRAPHICS_FALLBACK_DISTRO_FAMILIES)
+        || (is_wayland_session()
+            && distro_family_matches(os_release, WEBKIT_GRAPHICS_FALLBACK_WAYLAND_DISTRO_FAMILIES))
 }
 
-fn is_arch_like_os_release(os_release: Option<&str>) -> bool {
+fn distro_family_matches(os_release: Option<&str>, families: &[&str]) -> bool {
     let Some(contents) = os_release else {
         return false;
     };
@@ -101,13 +118,18 @@ fn is_arch_like_os_release(os_release: Option<&str>) -> bool {
         if !matches!(name, "ID" | "ID_LIKE") {
             return false;
         }
-        os_release_value_tokens(value).any(|token| {
-            matches!(
-                token.as_str(),
-                "arch" | "archlinux" | "cachyos" | "manjaro" | "endeavouros" | "garuda"
-            )
-        })
+        os_release_value_tokens(value).any(|token| families.iter().any(|family| token == *family))
     })
+}
+
+fn is_wayland_session() -> bool {
+    env_var_is_nonempty("WAYLAND_DISPLAY")
+        || env::var_os("XDG_SESSION_TYPE")
+            .is_some_and(|value| value.to_string_lossy().eq_ignore_ascii_case("wayland"))
+}
+
+fn env_var_is_nonempty(name: &str) -> bool {
+    env::var_os(name).is_some_and(|value| !value.is_empty())
 }
 
 fn os_release_value_tokens(value: &str) -> impl Iterator<Item = String> + '_ {

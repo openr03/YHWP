@@ -1,15 +1,22 @@
+mod ai;
 mod app_quit;
+mod autosave;
+mod batch_convert;
 mod commands;
+mod external;
 mod font_catalog;
 #[cfg(target_os = "linux")]
 mod linux_runtime;
+#[cfg(target_os = "macos")]
+mod macos_recent_documents;
 #[cfg(target_os = "macos")]
 mod menu;
 mod pdf_export;
 mod pdf_font_fallbacks;
 mod pending_open;
-mod recent_docs;
+mod recent_documents;
 mod state;
+mod tabs;
 #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
 mod updates;
 mod windows;
@@ -21,47 +28,45 @@ use tauri::RunEvent;
 use tauri::{AppHandle, Emitter, Manager};
 
 use commands::{
-    cancel_app_quit, check_external_modification, close_document, commit_staged_hwp_save,
-    commit_staged_hwpx_save, create_document, create_editor_window, desktop_platform,
+    cancel_app_quit, check_external_modification, clear_recent_documents, close_document,
+    commit_staged_hwp_save, create_document, create_editor_window, desktop_platform,
     destroy_current_window, export_pdf, export_pdf_from_hwp_path, list_local_fonts,
-    mark_document_dirty, mutate_document, open_document_tracking, open_external_url,
-    prepare_document_open, prepare_staged_hwp_pdf_export, prepare_staged_hwp_save,
-    prepare_staged_hwpx_save, print_webview, query_document, read_local_font, render_page_svg,
-    reveal_in_folder, take_pending_open_paths,
-};
-use recent_docs::{
-    add_recent_doc, clear_recent_docs, get_recent_docs, remove_recent_doc, RecentDocsState,
+    list_recent_documents, mark_document_dirty, mutate_document, note_finder_recent_document,
+    open_document_tracking, prepare_document_open, prepare_staged_hwp_pdf_export,
+    prepare_staged_hwp_save, print_webview, query_document, read_local_font,
+    record_recent_document, render_document_preview, render_page_svg, reveal_in_folder,
+    take_pending_open_paths,
 };
 use state::AppState;
 use updates::{get_update_state, restart_to_apply_update, start_update_install};
 
 pub fn run() {
     #[cfg(target_os = "linux")]
-    linux_runtime::apply_linux_appimage_runtime_fixes();
+    linux_runtime::apply_linux_runtime_fixes();
 
     let app = tauri::Builder::default()
         .enable_macos_default_menu(false)
         .manage(AppState::default())
-        .manage(RecentDocsState::default())
+        .manage(tabs::TabState::default())
+        .manage(ai::AiState::default())
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        // tauri-plugin-window-state 제거 — 이전 세션 위치 복원이 좌측상단
-        // 흰 사각형 → 가운데 점프 사고 원인. 매 실행마다 config 의 center:true
-        // 로 깨끗하게 시작.
+        .plugin(
+            // 탭은 숨긴 창을 겹쳐 쓰므로 "보임" 상태는 복원하지 않고, 창 자리는 첫 창만 기억한다
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::all()
+                        & !tauri_plugin_window_state::StateFlags::VISIBLE,
+                )
+                .with_filter(|label| label == "main")
+                .build(),
+        )
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
             let paths = document_paths_from_args(&args, &cwd);
-            // 인자에 파일 경로가 있으면 그 파일들을 새 창들로 열기.
-            // 빈 인자(아이콘 더블클릭 등)면 새 빈 에디터 창 1개 추가 —
-            // 사용자가 앱 아이콘 두 번째 클릭 시 또 다른 작업 창이 열리는
-            // multi-window UX. (process 는 단일 인스턴스 유지: 자원 효율적)
             if paths.is_empty() {
-                let app_clone = app.clone();
-                tauri::async_runtime::spawn_blocking(move || {
-                    let _ = windows::create_editor_window(&app_clone);
-                });
                 return;
             }
             #[cfg(target_os = "macos")]
@@ -74,6 +79,18 @@ pub fn run() {
                 });
             }
         }))
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::Destroyed => {
+                autosave::clear_for_window(window.app_handle(), window.label());
+                tabs::on_window_destroyed(window.app_handle(), window.label());
+            }
+            tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => {
+                if let Some(webview) = window.app_handle().get_webview_window(window.label()) {
+                    tabs::remember_bounds(window.app_handle(), &webview);
+                }
+            }
+            _ => {}
+        })
         .setup(|app| {
             #[cfg(target_os = "macos")]
             menu::install(app)?;
@@ -83,6 +100,9 @@ pub fn run() {
             queue_open_paths(app.handle(), startup_document_paths());
             if let Some(window) = app.get_webview_window("main") {
                 windows::install_editor_window_minimum(&window);
+                windows::disable_browser_accelerator_keys(&window);
+                tabs::disable_window_transitions(&window);
+                windows::schedule_spare(app.handle());
                 windows::attach_document_drop_handler(app.handle(), &window);
             }
             #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
@@ -90,6 +110,15 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            ai::ai_chat,
+            ai::ai_chat_stream,
+            ai::batch::ai_batch_list,
+            ai::batch::ai_doc_text,
+            ai::batch::ai_write_report,
+            ai::ai_cancel,
+            ai::ai_list_models,
+            ai::ai_set_key,
+            ai::ai_has_key,
             create_document,
             create_editor_window,
             close_document,
@@ -110,22 +139,34 @@ pub fn run() {
             prepare_staged_hwp_pdf_export,
             prepare_staged_hwp_save,
             commit_staged_hwp_save,
-            prepare_staged_hwpx_save,
-            commit_staged_hwpx_save,
             check_external_modification,
             take_pending_open_paths,
             reveal_in_folder,
+            list_recent_documents,
+            clear_recent_documents,
+            record_recent_document,
+            note_finder_recent_document,
+            render_document_preview,
             get_update_state,
             start_update_install,
             restart_to_apply_update,
-            get_recent_docs,
-            add_recent_doc,
-            remove_recent_doc,
-            clear_recent_docs,
-            open_external_url,
+            batch_convert::batch_export_pdf,
+            external::open_external_url,
+            autosave::autosave_write,
+            autosave::autosave_clear,
+            autosave::autosave_list_recoverable,
+            autosave::autosave_discard,
+            tabs::tabs_list,
+            tabs::tabs_ready,
+            tabs::tabs_spare_claimed,
+            tabs::tabs_set_info,
+            tabs::tabs_activate,
+            tabs::tabs_close,
+            tabs::tabs_detach,
+            tabs_open_paths,
         ])
         .build(tauri::generate_context!())
-        .expect("failed to build HOP desktop app");
+        .expect("failed to build YHWP desktop app");
 
     app.run(|_app, _event| {
         #[cfg(target_os = "macos")]
@@ -161,9 +202,9 @@ fn queue_open_paths(app: &AppHandle, paths: Vec<String>) {
 
     let payload = serde_json::json!({ "paths": paths });
     if let Some(label) = crate::windows::target_window_label(app) {
-        let _ = app.emit_to(label, "hop-open-paths", payload);
+        let _ = app.emit_to(label, "yhwp-open-paths", payload);
     } else {
-        let _ = app.emit("hop-open-paths", payload);
+        let _ = app.emit("yhwp-open-paths", payload);
     }
 }
 
@@ -177,6 +218,22 @@ fn open_paths_in_new_windows(app: &AppHandle, paths: Vec<String>) {
 }
 
 #[cfg(not(target_os = "macos"))]
+/// 문서를 새 탭(현재 창 그룹의 새 편집 창)으로 연다.
+#[tauri::command]
+async fn tabs_open_paths(app: AppHandle, paths: Vec<String>) -> Result<(), String> {
+    let paths: Vec<String> = paths
+        .into_iter()
+        .filter_map(document_path_from_path)
+        .collect();
+    tauri::async_runtime::spawn_blocking(move || {
+        paths
+            .into_iter()
+            .try_for_each(|path| open_path_in_new_window(&app, path))
+    })
+    .await
+    .map_err(|e| format!("새 탭 열기 실패: {e}"))?
+}
+
 fn open_path_in_new_window(app: &AppHandle, path: String) -> Result<(), String> {
     let label = crate::windows::new_editor_window_label();
     app.state::<AppState>()
@@ -279,7 +336,7 @@ mod tests {
         let cwd = dir.path().to_string_lossy();
         let paths = document_paths_from_args(
             &[
-                dir.path().join("yhwp.exe").to_string_lossy().to_string(),
+                dir.path().join("YHWP.exe").to_string_lossy().to_string(),
                 "first.hwp".to_string(),
                 "notes.txt".to_string(),
                 "second.HWPX".to_string(),

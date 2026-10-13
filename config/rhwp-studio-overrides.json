@@ -1,0 +1,302 @@
+{
+  "schemaVersion": 1,
+  "upstream": {
+    "version": "0.8.7",
+    "commit": "1a76570e833917d15817415a53c09ad61ab3203f",
+    "counterparts": {
+      "core/font-loader": "64a7f5fa58f0aa4638ac0665875a02eb841e6225bf53b54a7e5d3aaca827cef1",
+      "core/local-fonts": "78228d2db58ea6467271bfe3bd5018ae7fb16b17480cc23f453cd0dc186fe1c8",
+      "command/shortcut-map": "a5c28535469c3d076dfe45f7ccf783a5227b48f1600c67b993823f2e1caf5ad8",
+      "command/commands/edit": "30a4708bd9b688c0d91104c3a3fdb41409c3adf07be82f1066e48c991deb5ec6",
+      "command/commands/file": "9fb77378cdf84564579b13348b0d99f59874560666a983b2e0d7fa782baf91d9",
+      "ui/about-dialog": "fb42625816fe8bbaac2de2c7e8b8044fa592374a89c3e312ce2cb76b58cf8d63",
+      "ui/dialog": "f45b9c7b5980e70bc6cd97ecf7c7c671441a16ad7d67638b1987e7bb8c7a2175",
+      "ui/toolbar": "f80b61e04ddd36d64d08a4f06c364fbef174400e2ecec7186c4ae145bb3d4bb9"
+    },
+    "assets": {
+      "public/images/icon_small_ko_dark.svg": "9d02ea0b8c1d399a89290d97613759826f19f3e3f392b6d79dcf6109e7e15fa6"
+    }
+  },
+  "overrides": [
+    {
+      "id": "core/font-loader",
+      "strategy": "fork",
+      "reason": "YHWP packages its own redistributable font catalog and authoring policy."
+    },
+    {
+      "id": "core/font-authoring-policy",
+      "strategy": "contribution",
+      "reason": "YHWP owns the restricted-font authoring and fallback policy."
+    },
+    {
+      "id": "core/local-fonts",
+      "strategy": "extension",
+      "reason": "Delegates browser behavior upstream and adds Tauri native font discovery and byte loading."
+    },
+    {
+      "id": "core/bridge-factory",
+      "strategy": "contribution",
+      "reason": "Selects the YHWP desktop bridge only inside a Tauri runtime."
+    },
+    {
+      "id": "core/document-files",
+      "strategy": "contribution",
+      "reason": "Defines the document formats exposed by the YHWP desktop product."
+    },
+    {
+      "id": "core/desktop-chrome",
+      "strategy": "contribution",
+      "reason": "Applies desktop-only window chrome and context-menu behavior."
+    },
+    {
+      "id": "core/desktop-events",
+      "strategy": "contribution",
+      "reason": "Connects Tauri document sessions and window events to the editor host."
+    },
+    {
+      "id": "core/platform",
+      "strategy": "contribution",
+      "reason": "Provides cross-platform desktop modifier and platform detection."
+    },
+    {
+      "id": "core/tauri-bridge",
+      "strategy": "contribution",
+      "reason": "Owns the typed native filesystem, session, save, export and print boundary."
+    },
+    {
+      "id": "command/shortcut-map",
+      "strategy": "extension",
+      "reason": "Adds YHWP desktop shortcuts while preserving upstream shortcut assignments."
+    },
+    {
+      "id": "command/commands/edit",
+      "strategy": "extension",
+      "reason": "Wraps selected upstream edit commands with YHWP clipboard behavior."
+    },
+    {
+      "id": "command/commands/file",
+      "strategy": "extension",
+      "reason": "Replaces native file actions while falling back to upstream web actions."
+    },
+    {
+      "id": "ui/about-dialog",
+      "strategy": "extension",
+      "reason": "Subclasses the upstream dialog to add the YHWP product version."
+    },
+    {
+      "id": "ui/custom-select",
+      "strategy": "contribution",
+      "reason": "Provides YHWP desktop select styling and interaction."
+    },
+    {
+      "id": "ui/dialog",
+      "strategy": "fork",
+      "reason": "Preserves YHWP modal focus and desktop interaction behavior."
+    },
+    {
+      "id": "ui/home-screen",
+      "strategy": "contribution",
+      "reason": "Provides YHWP recent-file and desktop document entry flows."
+    },
+    {
+      "id": "ui/preview-svg",
+      "strategy": "contribution",
+      "reason": "Provides YHWP preview rendering helpers."
+    },
+    {
+      "id": "ui/print-dialog",
+      "strategy": "contribution",
+      "reason": "Owns YHWP native print and PDF export choices."
+    },
+    {
+      "id": "ui/recent-documents-dialog",
+      "strategy": "contribution",
+      "reason": "Owns YHWP native recent-document interaction."
+    },
+    {
+      "id": "ui/toolbar",
+      "strategy": "fork",
+      "reason": "Preserves YHWP authoring-font policy and asynchronous desktop font loading."
+    },
+    {
+      "id": "ui/update-notice",
+      "strategy": "contribution",
+      "reason": "Owns YHWP desktop updater presentation and actions."
+    },
+    {
+      "id": "styles/about-dialog.css",
+      "strategy": "contribution",
+      "reason": "Styles the YHWP version added to the upstream dialog."
+    },
+    {
+      "id": "styles/custom-select.css",
+      "strategy": "contribution",
+      "reason": "Styles the YHWP custom select contribution."
+    },
+    {
+      "id": "styles/font-set-dialog.css",
+      "strategy": "contribution",
+      "reason": "Styles YHWP font set controls."
+    },
+    {
+      "id": "styles/home-screen.css",
+      "strategy": "contribution",
+      "reason": "Styles the YHWP desktop home screen."
+    },
+    {
+      "id": "styles/update-notice.css",
+      "strategy": "contribution",
+      "reason": "Styles YHWP update notices."
+    },
+    {
+      "id": "styles/recent-documents-dialog.css",
+      "strategy": "contribution",
+      "reason": "Styles YHWP recent-document UI."
+    },
+    {
+      "id": "ui/appearance",
+      "strategy": "contribution",
+      "reason": "YHWP skins, accent colors, and quick dark-mode toggle."
+    },
+    {
+      "id": "command/commands/yhwp",
+      "strategy": "contribution",
+      "reason": "YHWP-only appearance, help-link, and command palette commands."
+    },
+    {
+      "id": "ui/ribbon",
+      "strategy": "contribution",
+      "reason": "YHWP Hancom-style ribbon toolbar driven by menu tabs."
+    },
+    {
+      "id": "ui/ribbon-config",
+      "strategy": "contribution",
+      "reason": "YHWP ribbon tab, group, and icon definitions."
+    },
+    {
+      "id": "ui/nav-pane",
+      "strategy": "contribution",
+      "reason": "YHWP navigation pane with page thumbnails and outline."
+    },
+    {
+      "id": "styles/ribbon.css",
+      "strategy": "contribution",
+      "reason": "YHWP ribbon toolbar styles."
+    },
+    {
+      "id": "styles/nav-pane.css",
+      "strategy": "contribution",
+      "reason": "YHWP navigation pane styles."
+    },
+    {
+      "id": "core/autosave",
+      "strategy": "contribution",
+      "reason": "YHWP desktop autosave and crash recovery bridge."
+    },
+    {
+      "id": "ui/recovery-banner",
+      "strategy": "contribution",
+      "reason": "YHWP start-screen crash recovery list."
+    },
+    {
+      "id": "ui/print-preview",
+      "strategy": "contribution",
+      "reason": "YHWP full-screen print preview."
+    },
+    {
+      "id": "core/png-export",
+      "strategy": "contribution",
+      "reason": "YHWP per-page PNG export."
+    },
+    {
+      "id": "ui/batch-convert-dialog",
+      "strategy": "contribution",
+      "reason": "YHWP folder batch conversion options dialog."
+    },
+    {
+      "id": "ui/escape-closer",
+      "strategy": "contribution",
+      "reason": "Closes YHWP-hosted modeless dialogs with Escape like Hancom."
+    },
+    {
+      "id": "core/templates",
+      "strategy": "contribution",
+      "reason": "YHWP built-in document templates generated through the engine API."
+    },
+    {
+      "id": "core/ai/providers",
+      "strategy": "contribution",
+      "reason": "YHWP AI provider list and settings."
+    },
+    {
+      "id": "core/ai/client",
+      "strategy": "contribution",
+      "reason": "YHWP AI desktop transport."
+    },
+    {
+      "id": "core/ai/doc-tools",
+      "strategy": "contribution",
+      "reason": "YHWP AI document tools."
+    },
+    {
+      "id": "core/ai/agent",
+      "strategy": "contribution",
+      "reason": "YHWP AI agent loop."
+    },
+    {
+      "id": "core/ai/quick-actions",
+      "strategy": "contribution",
+      "reason": "YHWP AI quick actions."
+    },
+    {
+      "id": "ui/ai-panel",
+      "strategy": "contribution",
+      "reason": "YHWP AI assistant side panel."
+    },
+    {
+      "id": "ui/ai-settings-dialog",
+      "strategy": "contribution",
+      "reason": "YHWP AI settings dialog."
+    },
+    {
+      "id": "styles/ai-panel.css",
+      "strategy": "contribution",
+      "reason": "YHWP AI panel styles."
+    },
+    {
+      "id": "core/ai/long-doc",
+      "strategy": "contribution",
+      "reason": "YHWP AI long document chunking and summaries."
+    },
+    {
+      "id": "core/ai/tools",
+      "strategy": "contribution",
+      "reason": "YHWP AI tool registry."
+    },
+    {
+      "id": "core/ai/agent-ids",
+      "strategy": "contribution",
+      "reason": "YHWP AI request ids."
+    },
+    {
+      "id": "core/ai/batch",
+      "strategy": "contribution",
+      "reason": "YHWP folder batch AI jobs."
+    },
+    {
+      "id": "ui/ai-batch-dialog",
+      "strategy": "contribution",
+      "reason": "YHWP folder batch AI dialog."
+    },
+    {
+      "id": "ui/template-gallery",
+      "strategy": "contribution",
+      "reason": "YHWP template picker dialog."
+    },
+    {
+      "id": "ui/doc-tabs",
+      "strategy": "contribution",
+      "reason": "YHWP document tab bar backed by grouped editor windows."
+    }
+  ]
+}

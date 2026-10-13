@@ -43,3 +43,7 @@ Thumbs.db
 # 환경변수 (민감 정보)
 .env
 .env.docker
+
+# YHWP local
+apps/studio-host/public/_dev/
+reports/

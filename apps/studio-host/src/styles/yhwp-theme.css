@@ -1,0 +1,359 @@
+/*
+ * YHWP 디자인 레이어 — upstream 토큰만 덮어써서 업데이트에 강하게 유지한다.
+ * 스킨: data-yhwp-skin = modern(기본) | hancom, 강조색: data-yhwp-accent.
+ * upstream 스킨(플랫·올드스쿨)이 켜지면 data-theme-skin 이 붙으므로 이 파일 전체가 물러난다.
+ */
+:root {
+  --yhwp-warning: #d9620c;
+}
+
+:root:not([data-theme-skin]) {
+  --yhwp-brand: #2f62f0;
+  --yhwp-brand-strong: color-mix(in srgb, var(--yhwp-brand) 80%, #000);
+  --yhwp-brand-soft: color-mix(in srgb, var(--yhwp-brand) 11%, #fff);
+
+  --ui-bg: #f3f4f7;
+  --ui-bg-light: #f7f8fa;
+  --ui-surface: #ffffff;
+  --ui-surface-raised: #fbfbfd;
+  --ui-surface-muted: #eceef2;
+  --ui-border: #d5d9e0;
+  --ui-border-light: #e1e4ea;
+  --ui-border-subtle: #e8eaef;
+  --ui-border-strong: #c3c8d1;
+  --ui-text: #1d2330;
+  --ui-text-secondary: #3f4756;
+  --ui-text-muted: #5c6575;
+  --ui-text-hint: #848c9b;
+  --ui-hover: #e9ecf2;
+  --ui-hover-strong: color-mix(in srgb, var(--yhwp-brand) 9%, #eef0f4);
+  --ui-active: #d9deea;
+  --ui-selected: var(--yhwp-brand-soft);
+  --ui-accent-bg: color-mix(in srgb, var(--yhwp-brand) 8%, #fff);
+  --ui-accent-bg-light: color-mix(in srgb, var(--yhwp-brand) 5%, #fff);
+  --ui-menu-open: var(--yhwp-brand);
+  --ui-menu-open-border: var(--yhwp-brand-strong);
+  --ui-toolbar-bg-start: #ffffff;
+  --ui-toolbar-bg-end: #ffffff;
+  --ui-link: var(--yhwp-brand);
+  --ui-focus-soft: color-mix(in srgb, var(--yhwp-brand) 22%, transparent);
+
+  --doc-workspace: #e6e8ed;
+  --doc-shadow: rgba(16, 24, 40, 0.14);
+  --focus-ring: var(--yhwp-brand);
+  --selection-fill: color-mix(in srgb, var(--yhwp-brand) 26%, #fff);
+  --ruler-bg: #e6e8ed;
+  --ruler-marker: var(--yhwp-brand);
+
+  --accent-primary: var(--yhwp-brand);
+  --accent-strong: var(--yhwp-brand-strong);
+  --accent-light: color-mix(in srgb, var(--yhwp-brand) 78%, #fff);
+  --accent-hover: color-mix(in srgb, var(--yhwp-brand) 34%, #fff);
+  --accent-subtle: color-mix(in srgb, var(--yhwp-brand) 60%, #fff);
+
+  --shadow-dropdown: 0 8px 24px rgba(16, 24, 40, 0.12), 0 1px 3px rgba(16, 24, 40, 0.08);
+  --shadow-dialog: 0 20px 48px rgba(16, 24, 40, 0.18), 0 2px 6px rgba(16, 24, 40, 0.08);
+  --shadow-light: 0 2px 8px rgba(16, 24, 40, 0.08);
+
+  --font-family-ui: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    '맑은 고딕', 'Malgun Gothic', 'Segoe UI', sans-serif;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+}
+
+:root:not([data-theme-skin])[data-theme-effective="dark"] {
+  --yhwp-brand: #6b93ff;
+  --yhwp-brand-strong: color-mix(in srgb, var(--yhwp-brand) 75%, #fff);
+  --yhwp-brand-soft: color-mix(in srgb, var(--yhwp-brand) 18%, transparent);
+  --ui-menu-open: color-mix(in srgb, var(--yhwp-brand) 62%, #0b1020);
+  --ui-menu-open-border: color-mix(in srgb, var(--yhwp-brand) 75%, #0b1020);
+
+  --ui-bg: #17191e;
+  --ui-bg-light: #1c1f25;
+  --ui-surface: #1f2228;
+  --ui-surface-raised: #252930;
+  --ui-surface-muted: #2a2e36;
+  --ui-border: #343944;
+  --ui-border-light: #2e333c;
+  --ui-border-subtle: #2a2e36;
+  --ui-border-strong: #424855;
+  --ui-text: #e8ebf1;
+  --ui-text-secondary: #c3c8d3;
+  --ui-text-muted: #9aa2b1;
+  --ui-text-hint: #7b8392;
+  --ui-hover: #2b3039;
+  --ui-hover-strong: color-mix(in srgb, var(--yhwp-brand) 14%, #2b3039);
+  --ui-active: #363d4a;
+  --ui-accent-bg: color-mix(in srgb, var(--yhwp-brand) 16%, #1f2228);
+  --ui-accent-bg-light: color-mix(in srgb, var(--yhwp-brand) 10%, #1f2228);
+  --ui-toolbar-bg-start: #1f2228;
+  --ui-toolbar-bg-end: #1f2228;
+  --doc-workspace: #121418;
+  --doc-shadow: rgba(0, 0, 0, 0.55);
+  --ruler-bg: #1c1f25;
+  --selection-fill: color-mix(in srgb, var(--yhwp-brand) 38%, transparent);
+  --accent-light: color-mix(in srgb, var(--yhwp-brand) 80%, #fff);
+  --accent-hover: color-mix(in srgb, var(--yhwp-brand) 45%, #1f2228);
+  --accent-subtle: color-mix(in srgb, var(--yhwp-brand) 70%, #1f2228);
+}
+
+/* ── 강조색 ── */
+:root:not([data-theme-skin])[data-yhwp-accent="navy"] { --yhwp-brand: #1f4e9c; }
+:root:not([data-theme-skin])[data-yhwp-accent="green"] { --yhwp-brand: #138a5b; }
+:root:not([data-theme-skin])[data-yhwp-accent="purple"] { --yhwp-brand: #6d4ee6; }
+:root:not([data-theme-skin])[data-yhwp-accent="orange"] { --yhwp-brand: #d9620c; }
+:root:not([data-theme-skin])[data-yhwp-accent="rose"] { --yhwp-brand: #d6336c; }
+:root:not([data-theme-skin])[data-theme-effective="dark"][data-yhwp-accent="navy"] { --yhwp-brand: #7aa2e8; }
+:root:not([data-theme-skin])[data-theme-effective="dark"][data-yhwp-accent="green"] { --yhwp-brand: #3ecf8e; }
+:root:not([data-theme-skin])[data-theme-effective="dark"][data-yhwp-accent="purple"] { --yhwp-brand: #a48cff; }
+:root:not([data-theme-skin])[data-theme-effective="dark"][data-yhwp-accent="orange"] { --yhwp-brand: #ff9a4d; }
+:root:not([data-theme-skin])[data-theme-effective="dark"][data-yhwp-accent="rose"] { --yhwp-brand: #ff6b9a; }
+
+/* ── 공통 구성요소 (모던·한컴 클래식) ── */
+:root:not([data-theme-skin]) #menu-bar {
+  background: var(--ui-surface);
+  border-bottom: 1px solid var(--ui-border-subtle);
+  padding: 0 6px;
+}
+:root:not([data-theme-skin]) #menu-bar .menu-title {
+  border-radius: var(--radius-sm);
+  padding: 3px 11px;
+  transition: background-color 80ms ease;
+}
+:root:not([data-theme-skin]) .menu-dropdown,
+:root:not([data-theme-skin]) .md-sub-panel {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dropdown);
+  padding: 4px;
+}
+:root:not([data-theme-skin]) .md-item {
+  border-radius: var(--radius-sm);
+}
+:root:not([data-theme-skin]) .md-item[role^="menuitem"].active .md-icon:empty::before {
+  content: '✓';
+  color: var(--yhwp-brand);
+  font-weight: 700;
+}
+
+:root:not([data-theme-skin]) #icon-toolbar {
+  background: var(--ui-surface);
+  border-bottom: 1px solid var(--ui-border-subtle);
+  gap: 2px;
+  padding: 2px 8px;
+}
+:root:not([data-theme-skin]) #icon-toolbar .tb-btn {
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: background-color 80ms ease, border-color 80ms ease;
+}
+:root:not([data-theme-skin]) #icon-toolbar .tb-btn:hover {
+  background: var(--ui-hover-strong);
+}
+:root:not([data-theme-skin]) #icon-toolbar .tb-btn:active {
+  background: var(--ui-active);
+}
+:root:not([data-theme-skin]) #icon-toolbar .tb-sprite {
+  transform: scale(1.12);
+}
+:root:not([data-theme-skin]) #icon-toolbar .tb-sep {
+  background: var(--ui-border-subtle);
+  margin: 0 6px;
+  width: 1px;
+}
+
+:root:not([data-theme-skin]) #style-bar {
+  background: var(--ui-surface-raised);
+  border-bottom: 1px solid var(--ui-border-subtle);
+}
+:root:not([data-theme-skin]) #style-bar select,
+:root:not([data-theme-skin]) #style-bar input,
+:root:not([data-theme-skin]) #style-bar button {
+  border-radius: var(--radius-sm);
+}
+
+:root:not([data-theme-skin]) #scroll-container {
+  background: var(--doc-workspace);
+}
+:root:not([data-theme-skin]) #scroll-container canvas {
+  box-shadow: 0 1px 2px var(--doc-shadow), 0 8px 28px rgba(16, 24, 40, 0.10);
+}
+
+:root:not([data-theme-skin]) #status-bar {
+  background: var(--ui-surface);
+  border-top: 1px solid var(--ui-border-subtle);
+  color: var(--ui-text-muted);
+  height: 26px;
+}
+:root:not([data-theme-skin]) .stb-icon-btn {
+  border-radius: var(--radius-sm);
+}
+
+:root:not([data-theme-skin]) .dialog,
+:root:not([data-theme-skin]) .modal-dialog,
+:root:not([data-theme-skin]) .command-palette {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--ui-border-light);
+}
+
+/* ── 한컴 클래식 스킨: 회색 작업 영역, 은은한 그라데이션 도구 상자, 각진 모서리 ── */
+:root:not([data-theme-skin])[data-yhwp-skin="hancom"] {
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --font-family-ui: '맑은 고딕', 'Malgun Gothic', 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
+}
+:root:not([data-theme-skin])[data-yhwp-skin="hancom"]:not([data-theme-effective="dark"]) {
+  --ui-bg: #eef0f3;
+  --ui-surface-raised: #f4f6f8;
+  --ui-border: #c7ccd4;
+  --ui-border-subtle: #d3d8df;
+  --ui-border-strong: #b3b9c3;
+  --doc-workspace: #aeb3bb;
+  --ruler-bg: #dfe2e7;
+}
+:root:not([data-theme-skin])[data-yhwp-skin="hancom"] #menu-bar {
+  padding: 0 2px;
+}
+:root:not([data-theme-skin])[data-yhwp-skin="hancom"] #menu-bar .menu-title {
+  padding: 3px 12px;
+  font-weight: 500;
+}
+:root:not([data-theme-skin])[data-yhwp-skin="hancom"]:not([data-theme-effective="dark"]) #icon-toolbar {
+  background: linear-gradient(#ffffff, #eef1f5);
+  border-bottom-color: var(--ui-border);
+}
+:root:not([data-theme-skin])[data-yhwp-skin="hancom"]:not([data-theme-effective="dark"]) #style-bar {
+  background: linear-gradient(#f7f8fa, #e9ecf0);
+  border-bottom-color: var(--ui-border);
+}
+:root:not([data-theme-skin])[data-yhwp-skin="hancom"] #icon-toolbar .tb-btn:hover {
+  border-color: var(--accent-hover);
+  background: var(--ui-accent-bg);
+}
+:root:not([data-theme-skin])[data-yhwp-skin="hancom"] #scroll-container canvas {
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.28);
+}
+:root:not([data-theme-skin])[data-yhwp-skin="hancom"]:not([data-theme-effective="dark"]) #status-bar {
+  background: linear-gradient(#f6f7f9, #e7eaee);
+  border-top-color: var(--ui-border);
+}
+
+/* ── 메뉴 부가 요소 ── */
+.md-group-label {
+  padding: 6px 12px 2px;
+  font-size: 11px;
+  color: var(--ui-text-hint);
+  pointer-events: none;
+}
+.yhwp-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--sw);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  vertical-align: -1px;
+}
+
+/* ── 상태 표시줄: 테마 전환 + 확대 슬라이더 ── */
+.stb-theme-toggle {
+  font-size: 13px;
+  line-height: 1;
+  color: var(--ui-text-muted);
+}
+.stb-zoom-slider {
+  width: 110px;
+  height: 4px;
+  margin: 0 6px;
+  accent-color: var(--accent-primary, #2f62f0);
+  cursor: pointer;
+  vertical-align: middle;
+}
+@media (max-width: 720px) {
+  .stb-zoom-slider { display: none; }
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* ── 문서 위 마우스 포인터: 글자 입력 커서(I) ──
+ * 하이퍼링크(손가락)·개체 이동처럼 편집기가 #scroll-container 에 직접 커서를 정하면 그 값을 따른다. */
+#scroll-container:not([style*="cursor"]) #scroll-content canvas {
+  cursor: text;
+}
+
+/* ── 상태 표시줄: 입체 구분선 대신 은은한 한 줄, 선 아이콘 버튼 ── */
+:root:not([data-theme-skin]) #status-bar {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+:root:not([data-theme-skin]) .stb-divider {
+  padding: 0 5px;
+}
+:root:not([data-theme-skin]) .stb-divider::after {
+  top: 8px;
+  bottom: 8px;
+  left: 5px;
+  border-left: 1px solid var(--ui-border);
+  border-right: 0;
+}
+:root:not([data-theme-skin]) .stb-item {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--ui-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+:root:not([data-theme-skin]) .stb-message {
+  padding-left: 6px;
+  color: var(--ui-text-secondary);
+}
+:root:not([data-theme-skin]) .stb-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+:root:not([data-theme-skin]) .stb-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--ui-text-muted);
+}
+:root:not([data-theme-skin]) .stb-icon-btn:hover {
+  border: 0;
+  background: var(--ui-hover);
+  color: var(--ui-text);
+}
+:root:not([data-theme-skin]) .stb-icon-btn:active {
+  background: var(--ui-active);
+}
+:root:not([data-theme-skin]) .stb-icon-btn .yi {
+  color: inherit;
+}
+:root:not([data-theme-skin]) .stb-zoom-val {
+  min-width: 46px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--ui-text-secondary);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+:root:not([data-theme-skin]) .stb-zoom-val:hover {
+  background: var(--ui-hover);
+}

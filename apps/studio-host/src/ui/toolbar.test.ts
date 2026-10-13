@@ -8,7 +8,7 @@ vi.mock('@/core/font-loader', () => ({
   loadWebFonts: loadWebFontsMock,
 }));
 
-vi.mock('@/core/user-settings', () => ({
+vi.mock('@/upstream/core', () => ({
   userSettings: {
     getAllFontSets: () => [],
   },
@@ -24,6 +24,27 @@ vi.mock('./custom-select', () => ({
 }));
 
 import { Toolbar } from './toolbar';
+
+describe('Toolbar upstream keyboard behavior', () => {
+  it('activates format buttons by keyboard without double dispatching a mouse click', () => {
+    const listeners = new Map<string, (event: { detail?: number; preventDefault: () => void }) => void>();
+    const button = { addEventListener: (type: string, listener: never) => listeners.set(type, listener) };
+    const otherButton = { addEventListener: vi.fn() };
+    const dispatch = vi.fn();
+    const toolbar = {
+      btnBold: button, btnItalic: otherButton, btnUnderline: otherButton, btnStrike: otherButton,
+      dispatcher: { dispatch },
+    };
+    const setup = (Toolbar.prototype as unknown as Record<string, (this: object) => void>).setupFormatButtons;
+    setup.call(toolbar);
+    listeners.get('mousedown')!({ preventDefault: vi.fn() });
+    listeners.get('click')!({ detail: 1, preventDefault: vi.fn() });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    listeners.get('click')!({ detail: 0, preventDefault: vi.fn() });
+    expect(dispatch).toHaveBeenCalledTimes(2);
+    expect(dispatch).toHaveBeenLastCalledWith('format:bold');
+  });
+});
 
 type Deferred = {
   promise: Promise<void>;
@@ -199,5 +220,40 @@ describe('Toolbar font application sequencing', () => {
     expect(emit).toHaveBeenCalledWith('format-char', {
       fontIds: [1000, 1001, 1002, 1003, 1004, 1005, 1006],
     });
+  });
+
+  it('invalidates pending font applications when rebuilding the font dropdown for a new document', () => {
+    const previousDocument = globalThis.document;
+    const replaceChildren = vi.fn();
+    const appendChild = vi.fn();
+    const toolbar = {
+      fontApplyRequestId: 7,
+      lastFontFamilies: ['Old', 'Fonts'],
+      fontName: {
+        replaceChildren,
+        appendChild,
+      },
+      populateFontSetOptions: vi.fn(),
+      populateLocalFontOptions: vi.fn(),
+      beginFontApplyRequest: (
+        Toolbar.prototype as unknown as Record<string, () => number>
+      ).beginFontApplyRequest,
+    };
+    const createElement = vi.fn(() => ({ value: '', textContent: '' }));
+    (globalThis as { document?: unknown }).document = { createElement };
+    const initFontDropdown = (
+      Toolbar.prototype as unknown as Record<string, (this: object, docFonts?: string[]) => void>
+    ).initFontDropdown;
+
+    try {
+      initFontDropdown.call(toolbar, ['DocFont']);
+
+      expect(toolbar.fontApplyRequestId).toBe(8);
+      expect(toolbar.lastFontFamilies).toBeUndefined();
+      expect(replaceChildren).toHaveBeenCalledOnce();
+      expect(appendChild).toHaveBeenCalledWith(expect.objectContaining({ value: 'DocFont' }));
+    } finally {
+      (globalThis as { document?: unknown }).document = previousDocument;
+    }
   });
 });

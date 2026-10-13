@@ -58,7 +58,7 @@ function writeIco(outPath, pngPaths) {
 }
 
 function makeIcns(outPath) {
-  const tempRoot = mkdtempSync(join(tmpdir(), 'hop-iconset-'));
+  const tempRoot = mkdtempSync(join(tmpdir(), 'yhwp-iconset-'));
   const iconset = join(tempRoot, 'AppIcon.iconset');
   mkdirSync(iconset, { recursive: true });
   const entries = [

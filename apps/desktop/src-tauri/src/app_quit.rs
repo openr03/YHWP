@@ -1,22 +1,20 @@
-// 앱 종료 흐름은 `RunEvent::ExitRequested` 가 발생하는 macOS 에서만
-// 실제로 호출된다 (lib.rs 의 `#[cfg(target_os = "macos")]` 블록 참고).
-// 그래서 macOS 가 아닌 빌드에서는 이 모듈의 항목들이 dead code 로 잡히지만,
-// 테스트와 macOS 빌드를 위해 유지한다.
-#![cfg_attr(not(any(target_os = "macos", test)), allow(dead_code))]
-
 use std::collections::VecDeque;
 
-use tauri::{AppHandle, Emitter, Manager, RunEvent};
+use tauri::{AppHandle, Manager};
+#[cfg(target_os = "macos")]
+use tauri::{Emitter, RunEvent};
 
 use crate::state::AppState;
 
-const APP_QUIT_REQUEST_EVENT: &str = "hop-app-quit-requested";
+#[cfg(target_os = "macos")]
+const APP_QUIT_REQUEST_EVENT: &str = "yhwp-app-quit-requested";
 
 #[derive(Default)]
 pub struct AppQuitState {
     pending_window_labels: VecDeque<String>,
 }
 
+#[cfg(any(target_os = "macos", test))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum QuitAdvance {
     Idle,
@@ -25,10 +23,12 @@ pub enum QuitAdvance {
 }
 
 impl AppQuitState {
+    #[cfg(any(target_os = "macos", test))]
     pub fn is_in_progress(&self) -> bool {
         !self.pending_window_labels.is_empty()
     }
 
+    #[cfg(any(target_os = "macos", test))]
     pub fn begin(&mut self, labels: Vec<String>) -> Option<String> {
         self.pending_window_labels = labels.into();
         self.pending_window_labels.front().cloned()
@@ -38,6 +38,7 @@ impl AppQuitState {
         self.pending_window_labels.clear();
     }
 
+    #[cfg(any(target_os = "macos", test))]
     pub fn advance_after_close(&mut self, closed_label: &str) -> QuitAdvance {
         if self.pending_window_labels.is_empty() {
             return QuitAdvance::Idle;
@@ -57,6 +58,7 @@ impl AppQuitState {
     }
 }
 
+#[cfg(target_os = "macos")]
 pub(crate) fn request_app_quit(app: &AppHandle) -> Result<(), String> {
     let next_label = {
         let state = app.state::<AppState>();
@@ -88,6 +90,7 @@ pub(crate) fn cancel_app_quit_request(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
 pub(crate) fn handle_run_event(app: &AppHandle, event: &RunEvent) -> Result<(), String> {
     match event {
         RunEvent::ExitRequested { code, api, .. } if code.is_none() => {
@@ -103,6 +106,7 @@ pub(crate) fn handle_run_event(app: &AppHandle, event: &RunEvent) -> Result<(), 
     }
 }
 
+#[cfg(target_os = "macos")]
 fn handle_quit_window_destroyed(app: &AppHandle, label: &str) -> Result<(), String> {
     let advance = {
         let state = app.state::<AppState>();
@@ -123,6 +127,7 @@ fn handle_quit_window_destroyed(app: &AppHandle, label: &str) -> Result<(), Stri
     }
 }
 
+#[cfg(target_os = "macos")]
 fn emit_app_quit_request(app: &AppHandle, label: &str) -> Result<(), String> {
     app.emit_to(label, APP_QUIT_REQUEST_EVENT, serde_json::json!({}))
         .map_err(|e| {
@@ -131,6 +136,7 @@ fn emit_app_quit_request(app: &AppHandle, label: &str) -> Result<(), String> {
         })
 }
 
+#[cfg(target_os = "macos")]
 fn ordered_quit_labels(app: &AppHandle) -> Vec<String> {
     let mut labels: Vec<String> = app.webview_windows().keys().cloned().collect();
     labels.sort();

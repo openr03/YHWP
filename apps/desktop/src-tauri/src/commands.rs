@@ -1,9 +1,10 @@
 use crate::font_catalog::LocalFontEntry;
+use crate::recent_documents::{self, RecentDocument};
 use crate::state::{
     editable_core_from_bytes, AppState, DocumentFormat, DocumentOpenResult,
     ExternalModificationStatus, FileFingerprint, MutationResult, PageSvgResult, SaveResult,
 };
-use rhwp::DocumentCore;
+use yhwp_rhwp_adapter::DocumentCore;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
@@ -43,11 +44,12 @@ pub fn open_document_tracking(
     source_fingerprint: Option<FileFingerprint>,
     state: State<'_, AppState>,
 ) -> Result<DocumentOpenResult, String> {
+    let path = PathBuf::from(path);
     state
         .sessions
         .lock()
         .map_err(|_| "문서 세션 잠금 실패".to_string())?
-        .open_document_tracking(PathBuf::from(path), source_fingerprint)
+        .open_document_tracking(path, source_fingerprint)
 }
 
 #[tauri::command]
@@ -94,39 +96,6 @@ pub fn prepare_staged_hwp_save(app: AppHandle, target_path: String) -> Result<St
 }
 
 #[tauri::command]
-pub fn prepare_staged_hwpx_save(app: AppHandle, target_path: String) -> Result<String, String> {
-    prepare_staged_file(
-        &app,
-        PathBuf::from(target_path),
-        ensure_hwpx_target_path,
-        staged_hwpx_save_path,
-    )
-}
-
-#[tauri::command]
-pub fn commit_staged_hwpx_save(
-    doc_id: String,
-    staged_path: String,
-    target_path: String,
-    expected_revision: Option<u64>,
-    allow_external_overwrite: Option<bool>,
-    state: State<'_, AppState>,
-) -> Result<SaveResult, String> {
-    let target_path = PathBuf::from(target_path);
-    state
-        .sessions
-        .lock()
-        .map_err(|_| "문서 세션 잠금 실패".to_string())?
-        .commit_staged_hwpx_save(
-            &doc_id,
-            PathBuf::from(staged_path),
-            target_path,
-            expected_revision,
-            allow_external_overwrite.unwrap_or(false),
-        )
-}
-
-#[tauri::command]
 pub fn prepare_staged_hwp_pdf_export(
     app: AppHandle,
     target_path: String,
@@ -141,6 +110,7 @@ pub fn prepare_staged_hwp_pdf_export(
 
 #[tauri::command]
 pub fn commit_staged_hwp_save(
+    app: AppHandle,
     doc_id: String,
     staged_path: String,
     target_path: String,
@@ -149,17 +119,83 @@ pub fn commit_staged_hwp_save(
     state: State<'_, AppState>,
 ) -> Result<SaveResult, String> {
     let target_path = PathBuf::from(target_path);
-    state
+    let result = state
         .sessions
         .lock()
         .map_err(|_| "문서 세션 잠금 실패".to_string())?
         .commit_staged_hwp_save(
             &doc_id,
             PathBuf::from(staged_path),
-            target_path,
+            target_path.clone(),
             expected_revision,
             allow_external_overwrite.unwrap_or(false),
+        )?;
+    let _ = recent_documents::record_document(&app, &target_path);
+    Ok(result)
+}
+
+#[tauri::command]
+pub fn list_recent_documents(app: AppHandle) -> Result<Vec<RecentDocument>, String> {
+    recent_documents::list_documents(&app)
+}
+
+#[tauri::command]
+pub fn clear_recent_documents(app: AppHandle) -> Result<(), String> {
+    recent_documents::clear_documents(&app)
+}
+
+#[tauri::command]
+pub fn record_recent_document(app: AppHandle, path: String) -> Result<(), String> {
+    recent_documents::record_document(&app, &PathBuf::from(path))
+}
+
+#[tauri::command]
+pub fn note_finder_recent_document(app: AppHandle, path: String) -> Result<(), String> {
+    let path = PathBuf::from(path);
+    ensure_document_open_path(&path)?;
+    note_platform_recent_document(&app, &path)
+}
+
+#[cfg(target_os = "macos")]
+fn note_platform_recent_document(app: &AppHandle, path: &Path) -> Result<(), String> {
+    crate::macos_recent_documents::note_recent_document(app, path)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn note_platform_recent_document(_app: &AppHandle, _path: &Path) -> Result<(), String> {
+    Ok(())
+}
+
+/// 무거운 문서 파싱·렌더링은 창(메인) 스레드 밖에서 한다. 동기 명령은 메인 스레드에서 돌아
+/// 그동안 창이 멈춰 Windows 가 제목 줄을 "응답 없음"(흰색)으로 그린다.
+async fn off_main_thread<T: Send + 'static>(job: impl FnOnce() -> Result<T, String> + Send + 'static) -> Result<T, String> {
+    tauri::async_runtime::spawn_blocking(job)
+        .await
+        .map_err(|e| format!("작업 실패: {e}"))?
+}
+
+/// 최근 문서 미리보기는 한 번에 둘까지만 만든다 (여러 문서를 동시에 열어 메모리가 치솟지 않게)
+static PREVIEW_SLOTS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
+
+#[tauri::command]
+pub async fn render_document_preview(path: String) -> Result<String, String> {
+    let _slot = PREVIEW_SLOTS.acquire().await.map_err(|e| e.to_string())?;
+    off_main_thread(move || render_document_preview_blocking(path)).await
+}
+
+fn render_document_preview_blocking(path: String) -> Result<String, String> {
+    let path = PathBuf::from(path);
+    ensure_document_open_path(&path)?;
+    let bytes = std::fs::read(&path).map_err(|e| {
+        format!(
+            "미리보기용 문서를 읽을 수 없습니다: {} ({})",
+            path.display(),
+            e
         )
+    })?;
+    let core = editable_core_from_bytes(&bytes, "문서 파싱 실패", "미리보기용 문서 변환 실패")?;
+    core.render_page_svg_native(0)
+        .map_err(|e| format!("문서 미리보기를 렌더링할 수 없습니다: {}", e))
 }
 
 #[tauri::command]
@@ -240,7 +276,17 @@ pub fn export_pdf(
 }
 
 #[tauri::command]
-pub fn export_pdf_from_hwp_path(
+pub async fn export_pdf_from_hwp_path(
+    app: AppHandle,
+    staged_path: String,
+    target_path: String,
+    page_range: Option<PageRange>,
+    open_after: bool,
+) -> Result<String, String> {
+    off_main_thread(move || export_pdf_from_hwp_path_blocking(app, staged_path, target_path, page_range, open_after)).await
+}
+
+fn export_pdf_from_hwp_path_blocking(
     app: AppHandle,
     staged_path: String,
     target_path: String,
@@ -292,19 +338,6 @@ pub fn print_webview(window: WebviewWindow) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn open_external_url(url: String) -> Result<(), String> {
-    // 외부 브라우저로만 열도록 http/https 만 허용 (file://, javascript: 등 차단)
-    let trimmed = url.trim();
-    if !(trimmed.starts_with("https://") || trimmed.starts_with("http://")) {
-        return Err(format!(
-            "허용되지 않은 URL 스킴입니다 (https/http 만 허용): {}",
-            trimmed
-        ));
-    }
-    open::that(trimmed).map_err(|e| format!("외부 링크를 열 수 없습니다: {}", e))
-}
-
-#[tauri::command]
 pub fn destroy_current_window(window: WebviewWindow) -> Result<(), String> {
     window
         .destroy()
@@ -330,13 +363,13 @@ pub fn desktop_platform() -> &'static str {
 }
 
 #[tauri::command]
-pub fn list_local_fonts() -> Result<Vec<LocalFontEntry>, String> {
-    Ok(crate::font_catalog::collect_desktop_local_font_entries())
+pub async fn list_local_fonts() -> Result<Vec<LocalFontEntry>, String> {
+    off_main_thread(|| Ok(crate::font_catalog::collect_desktop_local_font_entries())).await
 }
 
 #[tauri::command]
-pub fn read_local_font(path: String) -> Result<Vec<u8>, String> {
-    crate::font_catalog::read_desktop_local_font(Path::new(&path))
+pub async fn read_local_font(path: String) -> Result<Vec<u8>, String> {
+    off_main_thread(move || crate::font_catalog::read_desktop_local_font(Path::new(&path))).await
 }
 
 fn allow_frontend_fs_file(app: &AppHandle, path: &Path) -> Result<(), String> {
@@ -378,23 +411,8 @@ fn ensure_hwp_target_path(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn ensure_hwpx_target_path(path: &Path) -> Result<(), String> {
-    ensure_target_parent(path, "저장 경로")?;
-    let format = DocumentFormat::from_path(path)?;
-    if format != DocumentFormat::Hwpx {
-        return Err(
-            "HWP 경로에는 HWPX 바이트를 저장할 수 없습니다. .hwpx 파일로 저장하세요.".to_string(),
-        );
-    }
-    Ok(())
-}
-
 fn staged_hwp_save_path(target_path: &Path) -> Result<PathBuf, String> {
-    staged_sibling_path(target_path, ".hop-save-", ".tmp")
-}
-
-fn staged_hwpx_save_path(target_path: &Path) -> Result<PathBuf, String> {
-    staged_sibling_path(target_path, ".hop-save-hwpx-", ".tmp")
+    staged_sibling_path(target_path, ".yhwp-save-", ".tmp")
 }
 
 fn ensure_pdf_target_path(path: &Path) -> Result<(), String> {
@@ -403,7 +421,7 @@ fn ensure_pdf_target_path(path: &Path) -> Result<(), String> {
 }
 
 fn staged_hwp_pdf_export_path(target_path: &Path) -> Result<PathBuf, String> {
-    staged_sibling_path(target_path, ".hop-export-", ".hwp")
+    staged_sibling_path(target_path, ".yhwp-export-", ".hwp")
 }
 
 fn ensure_target_parent(path: &Path, context: &str) -> Result<(), String> {
@@ -455,10 +473,12 @@ fn export_pdf_from_core(
     open_after: bool,
 ) -> Result<(), String> {
     let path = PathBuf::from(&target_path);
+    let font_dirs = crate::font_catalog::pdf_font_dirs(app);
     let total = crate::pdf_export::export_core_to_pdf(
         core,
         &path,
         page_range,
+        font_dirs,
         |phase, done, total, message| {
             emit_progress(app, job_id, phase, done, total, &message);
         },
@@ -487,7 +507,7 @@ fn export_pdf_from_core(
 
 fn emit_progress(app: &AppHandle, job_id: &str, phase: &str, done: u32, total: u32, message: &str) {
     let _ = app.emit(
-        "hop-job-progress",
+        "yhwp-job-progress",
         JobProgress {
             job_id: job_id.to_string(),
             phase: phase.to_string(),
@@ -554,7 +574,7 @@ mod tests {
             .file_name()
             .unwrap()
             .to_string_lossy()
-            .starts_with("saved.hwp.hop-save-"));
+            .starts_with("saved.hwp.yhwp-save-"));
         assert!(staged_path
             .file_name()
             .unwrap()
@@ -575,7 +595,7 @@ mod tests {
             .file_name()
             .unwrap()
             .to_string_lossy()
-            .starts_with("export.pdf.hop-export-"));
+            .starts_with("export.pdf.yhwp-export-"));
         assert_eq!(
             staged_path
                 .extension()
