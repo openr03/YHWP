@@ -13,6 +13,8 @@ apps/studio-host/dist/
 .pnpm-store/
 
 *.wasm
+# 패치된 rhwp 엔진 빌드는 저장소에 둔다 (docs/yhwp-engine-patches.md)
+!apps/studio-host/vendor/rhwp-core/rhwp_bg.wasm
 
 # IDE
 .vscode/
